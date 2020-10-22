@@ -1,0 +1,25 @@
+HKCR
+{
+	CmdLineExt.CmdLineContextMenu.1 = s 'CmdLineContextMenu Class'
+	{
+		CLSID = s '{9869EFB4-18E9-11D3-A837-00104B9E30B5}'
+	}
+	CmdLineExt.CmdLineContextMenu = s 'CmdLineContextMenu Class'
+	{
+		CLSID = s '{9869EFB4-18E9-11D3-A837-00104B9E30B5}'
+		CurVer = s 'CmdLineExt.CmdLineContextMenu.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {9869EFB4-18E9-11D3-A837-00104B9E30B5} = s 'CmdLineContextMenu Class'
+		{
+			ProgID = s 'CmdLineExt.CmdLineContextMenu.1'
+			VersionIndependentProgID = s 'CmdLineExt.CmdLineContextMenu'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{9869EFA6-18E9-11D3-A837-00104B9E30B5}'
+		}
+	}
+}

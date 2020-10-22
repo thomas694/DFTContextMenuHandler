@@ -1,0 +1,28 @@
+// CmdLineExt.idl : IDL source for CmdLineExt.dll
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (CmdLineExt.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	uuid(9869EFA6-18E9-11D3-A837-00104B9E30B5),
+	version(1.0),
+	helpstring("CmdLineExt 1.0 Type Library")
+]
+library CMDLINEEXTLib
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+
+	[
+		uuid(9869EFB4-18E9-11D3-A837-00104B9E30B5),
+		helpstring("CmdLineContextMenu Class")
+	]
+	coclass CmdLineContextMenu
+	{
+		[default] interface IUnknown;
+	};
+};
