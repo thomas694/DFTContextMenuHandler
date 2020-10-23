@@ -8,8 +8,11 @@
 #include <comdef.h>
 #include <shlobj.h>
 #include <string>
+#include <vector>
+#include <shlwapi.h>
 
-#define ID_RUN_WITH_CMD_LINE_PARAMS		0
+#define ID_MENU_ITEM 0
+//#define ID_RUN_WITH_CMD_LINE_PARAMS		0
 
 /////////////////////////////////////////////////////////////////////////////
 // CCmdLineContextMenu
@@ -49,10 +52,34 @@ BEGIN_COM_MAP(CCmdLineContextMenu)
 	COM_INTERFACE_ENTRY(IShellExtInit)
 END_COM_MAP()
 
-private:
-	typedef std::basic_string<_TCHAR>	string;
-	string							m_strFileName;
+protected:
+	TCHAR m_szFolderDroppedIn[MAX_PATH];
+	//CBitmap     m_bitmap;
 
+private:
+	ConvertDots2Spaces();
+	ConvertSpaces2Dots();
+	ConvertUnderscores2Spaces();
+	ConvertSpaces2Underscores();
+	RemoveGroupNames();
+	RenameExtension();
+	AppendExtension();
+	RemoveFromFilename();
+	SetDateTime();
+	InsertBeforeFilename();
+	AppendToFilename();
+	FlattenTree();
+	FlattenTree2();
+	DeleteEmptySubfolders();
+	SlideShow();
+
+	typedef std::basic_string<_TCHAR>	string;
+	string m_strFileName;
+	//char * m_pszVerb;
+	//char * m_pwszVerb;
+	UINT m_idCmdFirst;
+	typedef std::vector<string> StringArray;
+	StringArray m_strFilenames;
 };
 
 #endif //__CMDLINECONTEXTMENU_H_

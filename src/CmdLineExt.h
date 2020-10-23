@@ -2,9 +2,9 @@
 
 
 /* File created by MIDL compiler version 5.01.0164 */
-/* at Wed Feb 09 15:27:51 2000
+/* at Sat Sep 01 17:57:02 2007
  */
-/* Compiler settings for D:\Development\Projects\Utilities\CmdLineExt\CmdLineExt.idl:
+/* Compiler settings for D:\CmdLineExt\CmdLineExt.idl:
     Oicf (OptLev=i2), W1, Zp8, env=Win32, ms_ext, c_ext
     error checks: allocation ref bounds_check enum stub_data 
 */
@@ -61,7 +61,7 @@ EXTERN_C const CLSID CLSID_CmdLineContextMenu;
 
 #ifdef __cplusplus
 
-class DECLSPEC_UUID("9869EFB4-18E9-11D3-A837-00104B9E30B5")
+class DECLSPEC_UUID("F062AE83-FCD6-4845-BA4E-D74FC5D59B38")
 CmdLineContextMenu;
 #endif
 #endif /* __CMDLINEEXTLib_LIBRARY_DEFINED__ */

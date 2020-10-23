@@ -14,6 +14,8 @@
 #include "CmdLineContextMenu.h"
 
 
+HINSTANCE hMyInstance;
+
 CComModule _Module;
 
 BEGIN_OBJECT_MAP(ObjectMap)
@@ -33,6 +35,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID /*lpReserved*/)
     }
     else if (dwReason == DLL_PROCESS_DETACH)
         _Module.Term();
+
+	hMyInstance = hInstance;
+
     return TRUE;    // ok
 }
 
@@ -73,11 +78,13 @@ STDAPI DllRegisterServer(void)
 	hr = _Module.RegisterServer(TRUE);
 
 	if (SUCCEEDED(hr)) {
-		if (::StringFromGUID2(CLSID_CmdLineContextMenu, strWideCLSID, 50) > 0) {
+		if ((::StringFromGUID2(CLSID_CmdLineContextMenu, strWideCLSID, 50) > 0)) {
 			_tcscpy(strCLSID, OLE2CT(strWideCLSID));
-			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("exefile\\shellex\\ContextMenuHandlers\\CmdLineExt\\"), strCLSID);
+			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("*\\shellex\\ContextMenuHandlers\\DFTContextMenuHandler\\"), strCLSID);
+			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\DragDropHandlers\\DFTContextMenuHandler\\"), strCLSID);
 		}
 	}
+
 	return hr;
 }
 
@@ -96,11 +103,19 @@ STDAPI DllUnregisterServer(void)
     hr = _Module.UnregisterServer(TRUE);
 
 	if (SUCCEEDED(hr)) {
-		if (key.Open(HKEY_CLASSES_ROOT, _T("exefile\\shellex\\ContextMenuHandlers\\")) == ERROR_SUCCESS) {
+		if (key.Open(HKEY_CLASSES_ROOT, _T("*\\shellex\\ContextMenuHandlers\\")) == ERROR_SUCCESS) {
 			hr = key.DeleteValue(NULL);
 			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
 				return hr;
-			hr = key.DeleteSubKey(_T("CmdLineExt"));
+			hr = key.DeleteSubKey(_T("DFTContextMenuHandler"));
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+		}
+		if (key.Open(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\DragDropHandlers\\")) == ERROR_SUCCESS) {
+			hr = key.DeleteValue(NULL);
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+			hr = key.DeleteSubKey(_T("DFTContextMenuHandler"));
 			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
 				return hr;
 		}

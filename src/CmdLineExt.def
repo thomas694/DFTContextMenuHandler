@@ -1,6 +1,6 @@
 ; CmdLineExt.def : Declares the module parameters.
 
-LIBRARY      "CmdLineExt.DLL"
+LIBRARY      "DFTContextMenuHandler.DLL"
 
 EXPORTS
 	DllCanUnloadNow     @1 PRIVATE

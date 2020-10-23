@@ -8,9 +8,9 @@ import "oaidl.idl";
 import "ocidl.idl";
 
 [
-	uuid(9869EFA6-18E9-11D3-A837-00104B9E30B5),
+	uuid(FC8BECFA-13D1-47F7-AC79-22EBFB5F3DFD),
 	version(1.0),
-	helpstring("CmdLineExt 1.0 Type Library")
+	helpstring("DFTContextMenuHandler 1.0 Type Library")
 ]
 library CMDLINEEXTLib
 {
@@ -18,8 +18,8 @@ library CMDLINEEXTLib
 	importlib("stdole2.tlb");
 
 	[
-		uuid(9869EFB4-18E9-11D3-A837-00104B9E30B5),
-		helpstring("CmdLineContextMenu Class")
+		uuid(F062AE83-FCD6-4845-BA4E-D74FC5D59B38),
+		helpstring("DFTContextMenu Class")
 	]
 	coclass CmdLineContextMenu
 	{

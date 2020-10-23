@@ -1,25 +1,25 @@
 HKCR
 {
-	CmdLineExt.CmdLineContextMenu.1 = s 'CmdLineContextMenu Class'
+	DFTContextMenuHandler.DFTContextMenu.1 = s 'DFTContextMenu Class'
 	{
-		CLSID = s '{9869EFB4-18E9-11D3-A837-00104B9E30B5}'
+		CLSID = s '{F062AE83-FCD6-4845-BA4E-D74FC5D59B38}'
 	}
-	CmdLineExt.CmdLineContextMenu = s 'CmdLineContextMenu Class'
+	DFTContextMenuHandler.DFTContextMenu = s 'DFTContextMenu Class'
 	{
-		CLSID = s '{9869EFB4-18E9-11D3-A837-00104B9E30B5}'
-		CurVer = s 'CmdLineExt.CmdLineContextMenu.1'
+		CLSID = s '{F062AE83-FCD6-4845-BA4E-D74FC5D59B38}'
+		CurVer = s 'DFTContextMenuHandler.DFTContextMenu.1'
 	}
 	NoRemove CLSID
 	{
-		ForceRemove {9869EFB4-18E9-11D3-A837-00104B9E30B5} = s 'CmdLineContextMenu Class'
+		ForceRemove {F062AE83-FCD6-4845-BA4E-D74FC5D59B38} = s 'DFTContextMenu Class'
 		{
-			ProgID = s 'CmdLineExt.CmdLineContextMenu.1'
-			VersionIndependentProgID = s 'CmdLineExt.CmdLineContextMenu'
+			ProgID = s 'DFTContextMenuHandler.DFTContextMenu.1'
+			VersionIndependentProgID = s 'DFTContextMenuHandler.DFTContextMenu'
 			InprocServer32 = s '%MODULE%'
 			{
 				val ThreadingModel = s 'Apartment'
 			}
-			'TypeLib' = s '{9869EFA6-18E9-11D3-A837-00104B9E30B5}'
+			'TypeLib' = s '{FC8BECFA-13D1-47F7-AC79-22EBFB5F3DFD}'
 		}
 	}
 }
