@@ -1,3 +1,28 @@
+//--------------------------------------------------------------------------
+// DFTContextMenuHandler - a windows shell extension
+// 
+// This is a shell extension for windows that adds a file tools submenu to 
+// the windows explorer context menu for folders and files in general.
+//
+// Version 1.01
+// Copyright (c) 2004-2008  thomas694 (@GH 0CFD61744DA1A21C)
+//     first version (for windows 32bit)
+//
+// This file is part of DFTContextMenuHandler.
+//
+// DFTContextMenuHandler is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//--------------------------------------------------------------------------
 // CmdLinePromptDlg.cpp : Implementation of CCmdLinePromptDlg
 #include "stdafx.h"
 #include "CmdLinePromptDlg.h"

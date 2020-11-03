@@ -30,7 +30,7 @@ public:
 	// IContextMenu interface
     STDMETHOD(QueryContextMenu)(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
     STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO lpici);
-    STDMETHOD(GetCommandString)(UINT idCmd, UINT  uType, UINT *pwReserved, LPSTR pszName, UINT cchMax);   
+    STDMETHOD(GetCommandString)(UINT_PTR idCmd, UINT  uType, UINT *pwReserved, LPSTR pszName, UINT cchMax);   
     
 	// IContextMenu2 interface
 	STDMETHOD(HandleMenuMsg)(UINT uMsg, WPARAM wParam, LPARAM lParam);    
@@ -57,21 +57,21 @@ protected:
 	//CBitmap     m_bitmap;
 
 private:
-	ConvertDots2Spaces();
-	ConvertSpaces2Dots();
-	ConvertUnderscores2Spaces();
-	ConvertSpaces2Underscores();
-	RemoveGroupNames();
-	RenameExtension();
-	AppendExtension();
-	RemoveFromFilename();
-	SetDateTime();
-	InsertBeforeFilename();
-	AppendToFilename();
-	FlattenTree();
-	FlattenTree2();
-	DeleteEmptySubfolders();
-	SlideShow();
+	int ConvertDots2Spaces();
+	int ConvertSpaces2Dots();
+	int ConvertUnderscores2Spaces();
+	int ConvertSpaces2Underscores();
+	int RemoveGroupNames();
+	int RenameExtension();
+	int AppendExtension();
+	int RemoveFromFilename();
+	int SetDateTime();
+	int InsertBeforeFilename();
+	int AppendToFilename();
+	int FlattenTree();
+	int FlattenTree2();
+	int DeleteEmptySubfolders();
+	int SlideShow();
 
 	typedef std::basic_string<_TCHAR>	string;
 	string m_strFileName;

@@ -1,3 +1,31 @@
+//--------------------------------------------------------------------------
+// DFTContextMenuHandler - a windows shell extension
+// 
+// This is a shell extension for windows that adds a file tools submenu to 
+// the windows explorer context menu for folders and files in general.
+//
+// Version 1.01
+// Copyright (c) 2004-2008  thomas694 (@GH 0CFD61744DA1A21C)
+//     first version (for windows 32bit)
+// Version 1.02
+// Copyright (c) 2015  thomas694
+//     changed to 64bit
+//
+// This file is part of DFTContextMenuHandler.
+//
+// DFTContextMenuHandler is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//--------------------------------------------------------------------------
 // CmdLineExt.cpp : Implementation of DLL Exports.
 
 
@@ -81,6 +109,7 @@ STDAPI DllRegisterServer(void)
 		if ((::StringFromGUID2(CLSID_CmdLineContextMenu, strWideCLSID, 50) > 0)) {
 			_tcscpy(strCLSID, OLE2CT(strWideCLSID));
 			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("*\\shellex\\ContextMenuHandlers\\DFTContextMenuHandler\\"), strCLSID);
+			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\ContextMenuHandlers\\DFTContextMenuHandler\\"), strCLSID);
 			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\DragDropHandlers\\DFTContextMenuHandler\\"), strCLSID);
 		}
 	}
@@ -104,6 +133,14 @@ STDAPI DllUnregisterServer(void)
 
 	if (SUCCEEDED(hr)) {
 		if (key.Open(HKEY_CLASSES_ROOT, _T("*\\shellex\\ContextMenuHandlers\\")) == ERROR_SUCCESS) {
+			hr = key.DeleteValue(NULL);
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+			hr = key.DeleteSubKey(_T("DFTContextMenuHandler"));
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+		}
+		if (key.Open(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\ContextMenuHandlers\\")) == ERROR_SUCCESS) {
 			hr = key.DeleteValue(NULL);
 			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
 				return hr;

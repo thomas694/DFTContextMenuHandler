@@ -1,3 +1,29 @@
+//--------------------------------------------------------------------------
+// DFTContextMenuHandler - a windows shell extension
+// 
+// This is a shell extension for windows that adds a file tools submenu to 
+// the windows explorer context menu for folders and files in general.
+//
+// Version 1.01
+// Copyright (c) 2004-2008  thomas694 (@GH 0CFD61744DA1A21C)
+//     first version (for windows 32bit)
+// Version 1.02
+// Copyright (c) 2015  thomas694
+//     changed to 64bit
+//
+// DFTContextMenuHandler is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//--------------------------------------------------------------------------
 // CmdLineContextMenu.cpp : Implementation of CCmdLineContextMenu
 #include "stdafx.h"
 #include "CmdLineExt.h"
@@ -36,20 +62,26 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
     {
 
 		//seperator before "Send to"
-		UINT seperator_before_sendto = 193;
+		UINT seperator_before_sendto = 31485;
 
-/*
+		/*
 		int items = GetMenuItemCount(hmenu);
 		UINT data;
 
-		for (int i=5; i<15; i++) {
+		for (int i=5; i<30; i++) {
 			data = GetMenuItemID(hmenu, items - i -1);
 			char ids[20];
 			itoa(data, ids, 10);
-			//MessageBox(NULL, ids, _T("Caption"), MB_OK);
+			char buf[100];
+			GetMenuString(hmenu, data, buf, 100, 0);
+			char cmp[125];
+			strcpy(cmp, ids);
+			strcat(cmp, ": ");
+			strcat(cmp, buf);
+			MessageBox(NULL, cmp, _T("Caption"), MB_OK);
 			if (data == 193) { break; }
 		}
-*/
+		*/
 
 		m_idCmdFirst = idCmdFirst;
 
@@ -245,7 +277,7 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 //* Description	    : 
 //***************************************
 //
-STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT idCmd, 
+STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd, 
 												   UINT uType, 
 												   UINT *pwReserved, 
 												   LPSTR pszName, 
@@ -544,7 +576,7 @@ STDMETHODIMP CCmdLineContextMenu::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJ
 	return hres;
 }
 
-CCmdLineContextMenu::ConvertDots2Spaces() {
+int CCmdLineContextMenu::ConvertDots2Spaces() {
 
 	int lFiles;
 	lFiles = m_strFilenames.size();
@@ -604,9 +636,13 @@ CCmdLineContextMenu::ConvertDots2Spaces() {
 		//rename file
 		_trename(m_strFilenames[i].data(), sPath);
 	}
+
+	return 1;
 }
 
-CCmdLineContextMenu::ConvertSpaces2Dots() {
+
+
+int CCmdLineContextMenu::ConvertSpaces2Dots() {
 
 	int lFiles;
 	lFiles = m_strFilenames.size();
@@ -653,9 +689,10 @@ CCmdLineContextMenu::ConvertSpaces2Dots() {
 		_trename(m_strFilenames[i].data(), sPath);
 	}
 
+	return 1;
 }
 
-CCmdLineContextMenu::ConvertSpaces2Underscores() {
+int CCmdLineContextMenu::ConvertSpaces2Underscores() {
 
 	int lFiles;
 	lFiles = m_strFilenames.size();
@@ -702,9 +739,10 @@ CCmdLineContextMenu::ConvertSpaces2Underscores() {
 		_trename(m_strFilenames[i].data(), sPath);
 	}
 
+	return 1;
 }
 
-CCmdLineContextMenu::ConvertUnderscores2Spaces() {
+int CCmdLineContextMenu::ConvertUnderscores2Spaces() {
 
 	int lFiles;
 	lFiles = m_strFilenames.size();
@@ -758,9 +796,10 @@ CCmdLineContextMenu::ConvertUnderscores2Spaces() {
 		_trename(m_strFilenames[i].data(), sPath);
 	}
 
+	return 1;
 }
 
-CCmdLineContextMenu::RemoveGroupNames() {
+int CCmdLineContextMenu::RemoveGroupNames() {
 
 	int lFiles;
 	lFiles = m_strFilenames.size();
@@ -790,9 +829,11 @@ CCmdLineContextMenu::RemoveGroupNames() {
 
 		//MessageBox(NULL, sPath, _T("RemoveGroupNames"), MB_OK);
 	}
+
+	return 1;
 }
 
-CCmdLineContextMenu::RenameExtension() {
+int CCmdLineContextMenu::RenameExtension() {
 
 	bool bAsked = false;
 	TCHAR sNewExt[_MAX_EXT];
@@ -844,7 +885,7 @@ CCmdLineContextMenu::RenameExtension() {
 	return 1;
 }
 
-CCmdLineContextMenu::AppendExtension() {
+int CCmdLineContextMenu::AppendExtension() {
 
 	bool bAsked = false;
 	TCHAR sNewExt[_MAX_EXT];
@@ -900,7 +941,7 @@ CCmdLineContextMenu::AppendExtension() {
 	return 1;
 }
 
-CCmdLineContextMenu::RemoveFromFilename() {
+int CCmdLineContextMenu::RemoveFromFilename() {
 
 	bool bAsked = false;
 	TCHAR sNewName[_MAX_FNAME];
@@ -967,7 +1008,7 @@ CCmdLineContextMenu::RemoveFromFilename() {
 	return 1;
 }
 
-CCmdLineContextMenu::SetDateTime() {
+int CCmdLineContextMenu::SetDateTime() {
 
 	//get new date/time
 	tm *tm;
@@ -1017,7 +1058,7 @@ CCmdLineContextMenu::SetDateTime() {
 	return 1;
 }
 
-CCmdLineContextMenu::InsertBeforeFilename()
+int CCmdLineContextMenu::InsertBeforeFilename()
 {
 	bool bAsked = false;
 	TCHAR s2Insert[_MAX_FNAME];
@@ -1065,7 +1106,7 @@ CCmdLineContextMenu::InsertBeforeFilename()
 	return 1;
 }
 
-CCmdLineContextMenu::AppendToFilename()
+int CCmdLineContextMenu::AppendToFilename()
 {
 	bool bAsked = false;
 	TCHAR s2Append[_MAX_FNAME];
@@ -1111,7 +1152,7 @@ CCmdLineContextMenu::AppendToFilename()
 	return 1;
 }
 
-CCmdLineContextMenu::FlattenTree()
+int CCmdLineContextMenu::FlattenTree()
 {
 
 	bool bAsked = false;
@@ -1190,7 +1231,7 @@ CCmdLineContextMenu::FlattenTree()
 	}
 }
 
-CCmdLineContextMenu::FlattenTree2()
+int CCmdLineContextMenu::FlattenTree2()
 {
 
 	bool bAsked = false;
@@ -1269,7 +1310,7 @@ CCmdLineContextMenu::FlattenTree2()
 	}
 }
 
-CCmdLineContextMenu::DeleteEmptySubfolders()
+int CCmdLineContextMenu::DeleteEmptySubfolders()
 {
 
 	bool bAsked = false;
@@ -1348,7 +1389,7 @@ CCmdLineContextMenu::DeleteEmptySubfolders()
 	}
 }
 
-CCmdLineContextMenu::SlideShow()
+int CCmdLineContextMenu::SlideShow()
 {
 	TCHAR szAppPath[MAX_PATH] = _T("");
 	string strAppDirectory;
