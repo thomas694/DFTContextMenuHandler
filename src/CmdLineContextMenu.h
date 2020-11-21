@@ -72,12 +72,14 @@ private:
 	int FlattenTree2();
 	int DeleteEmptySubfolders();
 	int SlideShow();
+	int EmptyFiles();
 
 	typedef std::basic_string<_TCHAR>	string;
 	string m_strFileName;
 	//char * m_pszVerb;
 	//char * m_pwszVerb;
 	UINT m_idCmdFirst;
+	UINT m_idCmdLast;
 	typedef std::vector<string> StringArray;
 	StringArray m_strFilenames;
 };

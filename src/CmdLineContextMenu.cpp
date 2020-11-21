@@ -10,6 +10,10 @@
 // Version 1.02
 // Copyright (c) 2015  thomas694
 //     changed to 64bit
+// Version 1.03
+// Copyright (c) 2017  thomas694
+//     added option for emptying files
+//     fixed menu ids for newer windows version
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -63,6 +67,16 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 
 		//seperator before "Send to"
 		UINT seperator_before_sendto = 31485;
+	//	32761
+	//	32758
+	//	32763
+
+		int items = GetMenuItemCount(hmenu);
+		UINT data;
+		for (int i=0; i<items; i++) {
+			data = GetMenuItemID(hmenu, i);
+			if (data == 32763) seperator_before_sendto = 32763;
+		}
 
 		/*
 		int items = GetMenuItemCount(hmenu);
@@ -102,11 +116,14 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 		InsertMenu ( hPopup,10, MF_BYPOSITION, uID++, _T("Set file date/time...") );
 		InsertMenu ( hPopup,11, MF_BYPOSITION, uID++, _T("Append to filename...") );
 		InsertMenu ( hPopup,12, MF_BYPOSITION, uID++, _T("Insert before filename...") );
-		InsertMenu ( hPopup,13, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
-		InsertMenu ( hPopup,14, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)...") );
-		InsertMenu ( hPopup,15, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)...") );
-		InsertMenu ( hPopup,16, MF_BYPOSITION, uID++, _T("Delete empty subfolders...") );
-		InsertMenu ( hPopup,17, MF_BYPOSITION, uID++, _T("SlideShow...") );
+		InsertMenu ( hPopup,13, MF_BYPOSITION, uID++, _T("Empty file(s)...") );
+		InsertMenu ( hPopup,14, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+		InsertMenu ( hPopup,15, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)...") );
+		InsertMenu ( hPopup,16, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)...") );
+		InsertMenu ( hPopup,17, MF_BYPOSITION, uID++, _T("Delete empty subfolders...") );
+		InsertMenu ( hPopup,18, MF_BYPOSITION, uID++, _T("SlideShow...") );
+
+		m_idCmdLast = uID - 1;
 
 		//HMENU hPopup;
 		//hPopup = LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MENU1));
@@ -155,29 +172,40 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 /*
 		mii.cbSize = sizeof(MENUITEMINFO);
 		mii.fMask = MIIM_DATA|MIIM_TYPE|MIIM_ID;
-		char acMenuText[80];
+		TCHAR acMenuText[80];
 		mii.dwTypeData = acMenuText;
 		mii.cch = sizeof(acMenuText);
-		ret=GetMenuItemInfo(hmenu, 0, true, &mii);
-		cout << "Name: " << endl;
+		ret=GetMenuItemInfo(hmenu, 20, true, &mii);
+		cout << "Name: " << acMenuText << endl;
+		MessageBox(NULL, acMenuText, NULL, MB_OK);
 
 		mii.cbSize = sizeof(MENUITEMINFO);
 		mii.fMask = MIIM_DATA|MIIM_TYPE|MIIM_ID;
 		mii.dwTypeData = acMenuText;
 		mii.cch = sizeof(acMenuText);
-		ret=GetMenuItemInfo(hmenu, 1, true, &mii);
-		cout << "Name: " << endl;
+		ret=GetMenuItemInfo(hmenu, 21, true, &mii);
+		cout << "Name: " << acMenuText << endl;
+//		_stprintf( acMenuText, TEXT( "%d" ), mii.wID ) ;
+		MessageBox(NULL, acMenuText, NULL, MB_OK);
 
 		mii.cbSize = sizeof(MENUITEMINFO);
 		mii.fMask = MIIM_DATA|MIIM_TYPE|MIIM_ID;
 		mii.dwTypeData = acMenuText;
 		mii.cch = sizeof(acMenuText);
-		ret=GetMenuItemInfo(hmenu, 2, true, &mii);
-		cout << "Name: " << endl;
+		ret=GetMenuItemInfo(hmenu, 22, true, &mii);
+		cout << "Name: " << acMenuText << endl;
+		MessageBox(NULL, acMenuText, NULL, MB_OK);
+
+		mii.cbSize = sizeof(MENUITEMINFO);
+		mii.fMask = MIIM_DATA|MIIM_TYPE|MIIM_ID;
+		mii.dwTypeData = acMenuText;
+		mii.cch = sizeof(acMenuText);
+		ret=GetMenuItemInfo(hmenu, 23, true, &mii);
+		cout << "Name: " << acMenuText << endl;
+		MessageBox(NULL, acMenuText, NULL, MB_OK);
 */
 
-
-        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, uID - idCmdFirst);
+        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, 17);
     }
 
     return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
@@ -200,6 +228,13 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 	//ltoa( LOWORD(lpici->lpVerb), buffer, 10 );
 	//MessageBox(NULL, _T("Hello"), _T("Caption"), MB_OK);
 
+	// If lpVerb really points to a string, ignore this
+	// call and bail out.
+	if ( 0 != HIWORD(lpici->lpVerb) )
+		return E_INVALIDARG;
+
+	if (LOWORD(lpici->lpVerb) < 1 || LOWORD(lpici->lpVerb) > (m_idCmdLast-m_idCmdFirst))
+		return E_INVALIDARG;
 
     switch (LOWORD(lpici->lpVerb)) {
 	case 1:
@@ -236,15 +271,18 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 		InsertBeforeFilename();
 		break;
 	case 12:
-		FlattenTree();
+		EmptyFiles();
 		break;
 	case 13:
-		FlattenTree2();
+		FlattenTree();
 		break;
 	case 14:
-		DeleteEmptySubfolders();
+		FlattenTree2();
 		break;
 	case 15:
+		DeleteEmptySubfolders();
+		break;
+	case 16:
 		SlideShow();
 		break;
 
@@ -284,6 +322,9 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 												   UINT cchMax)
 {
 	HRESULT hr = E_INVALIDARG;
+
+	if (idCmd < 0 || idCmd > m_idCmdLast-m_idCmdFirst)
+		return hr;
 
 	switch (uType) {
 
@@ -355,16 +396,21 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 13:
-					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders2 (+: folder _ file.ext)"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Empty file(s) (0 KB)"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
 				case 14:
-					wcsncpy((LPWSTR)pszName, OLESTR("Delete empty subfolders"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders2 (+: folder _ file.ext)"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
 				case 15:
+					wcsncpy((LPWSTR)pszName, OLESTR("Delete empty subfolders"), cchMax);
+					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
+					hr = S_OK;
+					break;
+				case 16:
 					wcsncpy((LPWSTR)pszName, OLESTR("SlideShow"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
@@ -441,16 +487,21 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 13:
-					strncpy((LPSTR)pszName, "Flatten folders2 (+: folder _ file.ext)", cchMax);
+					strncpy((LPSTR)pszName, "Empty file(s) (0 KB)", cchMax);
 					((LPSTR)pszName)[cchMax - 1] = '\0';
 					hr = S_OK;
 					break;
 				case 14:
-					strncpy((LPSTR)pszName, "Delete empty subfolders", cchMax);
+					strncpy((LPSTR)pszName, "Flatten folders2 (+: folder _ file.ext)", cchMax);
 					((LPSTR)pszName)[cchMax - 1] = '\0';
 					hr = S_OK;
 					break;
 				case 15:
+					strncpy((LPSTR)pszName, "Delete empty subfolders", cchMax);
+					((LPSTR)pszName)[cchMax - 1] = '\0';
+					hr = S_OK;
+					break;
+				case 16:
 					strncpy((LPSTR)pszName, "SlideShow", cchMax);
 					((LPSTR)pszName)[cchMax - 1] = '\0';
 					hr = S_OK;
@@ -460,7 +511,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 
 		case GCS_VERBA:
 			if (idCmd == ID_MENU_ITEM) {
-				strncpy((LPSTR)pszName, "menu", cchMax);
+				strncpy((LPSTR)pszName, "Mymenu", cchMax);
 				((LPSTR)pszName)[cchMax - 1] = '\0';
 				hr = S_OK;
 			}
@@ -468,7 +519,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 
 		case GCS_VERBW:
 			if (idCmd == ID_MENU_ITEM) {
-				wcsncpy((LPWSTR)pszName, OLESTR("menu"), cchMax);
+				wcsncpy((LPWSTR)pszName, OLESTR("Mymenu"), cchMax);
 				((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 				hr = S_OK;
 			}
@@ -491,7 +542,6 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 //
 STDMETHODIMP CCmdLineContextMenu::HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-
 	return S_OK;
 }
    
@@ -504,7 +554,6 @@ STDMETHODIMP CCmdLineContextMenu::HandleMenuMsg(UINT uMsg, WPARAM wParam, LPARAM
 //
 STDMETHODIMP CCmdLineContextMenu::HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT* plResult)
 {
-
 	return S_OK;
 }
     
@@ -1220,10 +1269,8 @@ int CCmdLineContextMenu::FlattenTree()
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten\\flatten.exe"));
+			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten\\bin\\Debug\\flatten.exe"));
 			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "d:\\CmdLineExt\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "..\\..\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
 
 		}
 
@@ -1299,10 +1346,8 @@ int CCmdLineContextMenu::FlattenTree2()
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten2\\flatten2.exe"));
+			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten2\\bin\\Debug\\flatten2.exe"));
 			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "d:\\CmdLineExt\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "..\\..\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
 
 		}
 
@@ -1378,10 +1423,8 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\DeleteEmptyFolders\\DeleteEmptyFolders.exe"));
+			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\DeleteEmptyFolders\\bin\\Debug\\DeleteEmptyFolders.exe"));
 			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "d:\\CmdLineExt\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
-			//ShellExecute(NULL, NULL, "..\\..\\flatten\\flatten.exe", param.c_str(), NULL, SW_SHOWNORMAL);
 
 		}
 
@@ -1425,6 +1468,41 @@ int CCmdLineContextMenu::SlideShow()
 	//MessageBox(0, m_strFilenames[0].data(), "", MB_OK);
 
 	ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
+
+	return 1;
+}
+
+int CCmdLineContextMenu::EmptyFiles()
+{
+	bool bAsked = false;
+	TCHAR s2Append[_MAX_FNAME];
+	int lFiles;
+	lFiles = m_strFilenames.size();
+	int i;
+	for (i=0; i<lFiles; i++) {
+
+		if (!bAsked) {
+			bAsked = true;
+			//get string to append
+			string abc;
+			abc.assign(_T("no"));
+			string sTitle;
+			sTitle.assign(_T("Empty file(s)?"));
+			CCmdLinePromptDlg dlg(abc, sTitle);
+			if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
+			{
+			} else {
+				//cancel command
+				return 0;
+			}
+		}
+
+		//empty file
+		HANDLE h = CreateFile(m_strFilenames[i].data(), GENERIC_WRITE, 0, NULL, TRUNCATE_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		CloseHandle(h);
+
+		//MessageBox(NULL, sPath, _T("RemoveGroupNames"), MB_OK);
+	}
 
 	return 1;
 }
