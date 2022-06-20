@@ -1,4 +1,4 @@
-// CmdLineExt.idl : IDL source for CmdLineExt.dll
+// CmdLineExt.idl : IDL source for CmdLineExt
 //
 
 // This file will be processed by the MIDL tool to
@@ -12,7 +12,7 @@ import "ocidl.idl";
 	version(1.0),
 	helpstring("DFTContextMenuHandler 1.0 Type Library")
 ]
-library CMDLINEEXTLib
+library CmdLineExtLib
 {
 	importlib("stdole32.tlb");
 	importlib("stdole2.tlb");
@@ -26,3 +26,4 @@ library CMDLINEEXTLib
 		[default] interface IUnknown;
 	};
 };
+

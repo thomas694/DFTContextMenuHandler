@@ -12,7 +12,6 @@
 #include <shlwapi.h>
 
 #define ID_MENU_ITEM 0
-//#define ID_RUN_WITH_CMD_LINE_PARAMS		0
 
 /////////////////////////////////////////////////////////////////////////////
 // CCmdLineContextMenu
@@ -23,9 +22,7 @@ class ATL_NO_VTABLE CCmdLineContextMenu :
 	public IShellExtInit
 {
 public:
-	CCmdLineContextMenu()
-	{
-	}
+	CCmdLineContextMenu();
 
 	// IContextMenu interface
     STDMETHOD(QueryContextMenu)(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
@@ -76,12 +73,12 @@ private:
 
 	typedef std::basic_string<_TCHAR>	string;
 	string m_strFileName;
-	//char * m_pszVerb;
-	//char * m_pwszVerb;
 	UINT m_idCmdFirst;
 	UINT m_idCmdLast;
 	typedef std::vector<string> StringArray;
 	StringArray m_strFilenames;
 };
+
+OBJECT_ENTRY_AUTO(__uuidof(CmdLineContextMenu), CCmdLineContextMenu)
 
 #endif //__CMDLINECONTEXTMENU_H_

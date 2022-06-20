@@ -14,6 +14,11 @@
 ' Copyright (c) 2017  thomas694
 '     added option for emptying files
 '     fixed menu ids for newer windows version
+' Version 1.0.4  (c) 2020  thomas694
+'     release version
+' Version 1.5.0  (c) 2022  thomas694
+'     copied logic code into a VS2019 ATL template,
+'     using CAtlDllModuleT instead of CComModule
 '
 ' This project/file is part of DFTContextMenuHandler.
 '

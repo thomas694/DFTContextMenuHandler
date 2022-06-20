@@ -7,6 +7,9 @@
 // Version 1.01
 // Copyright (c) 2004-2008  thomas694 (@GH 0CFD61744DA1A21C)
 //     first version (for windows 32bit)
+// Version 1.5.0  (c) 2022  thomas694
+//     copied logic code into a VS2019 ATL template,
+//     using CAtlDllModuleT instead of CComModule
 //
 // This file is part of DFTContextMenuHandler.
 //
@@ -24,7 +27,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //--------------------------------------------------------------------------
 // CmdLinePromptDlg.cpp : Implementation of CCmdLinePromptDlg
-#include "stdafx.h"
+#include "pch.h"
+#include "dllmain.h"
 #include "CmdLinePromptDlg.h"
 #include <algorithm>
 
@@ -109,7 +113,7 @@ LRESULT CCmdLinePromptDlg::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam,
 	// that the message has been handled.
 	switch (wParam) {
 	case SC_CONTEXTHELP:
-		if (::LoadString(_Module.m_hInst, IDS_ABOUTTEXT, strAboutText, 256) > 0) {
+		if (::LoadString(_AtlModule.hInstance, IDS_ABOUTTEXT, strAboutText, 256) > 0) {
 			::MessageBox(m_hWnd, strAboutText, _T("About"), MB_OK | MB_ICONQUESTION);
 		}
 		bHandled = TRUE;

@@ -2,19 +2,20 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general.
+This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general.<br/>
+It should still work on older Windows versions and on 32-bit versions, but as support of these older versions has ended it is no longer tested on these.
 
 ## Screenshot
 
-![screenshot of submenu](https://user-images.githubusercontent.com/71355143/97242696-d355b280-17f4-11eb-8c56-cef1cc6b4243.png)
+![screenshot of submenu](https://user-images.githubusercontent.com/71355143/174674036-74903a34-dbba-407b-bb8a-fab5d0dc13f8.png)
 
 ## Functions
 
 The `My File Tools` submenu should be located above the `Send to` item and offers the following functions which are executed on the selected files
-- `Convert dots 2 spaces` converts dots in the filenames to spaces
-- `Convert spaces 2 dots` converts spaces in the filenames to dots
-- `Convert underscores 2 spaces` converts underscores in the filenames to spaces
-- `Convert spaces 2 underscores` converts spaces in the filenames to underscores
+- `Convert dots to spaces` converts dots in the filenames to spaces
+- `Convert spaces to dots` converts spaces in the filenames to dots
+- `Convert underscores to spaces` converts underscores in the filenames to spaces
+- `Convert spaces to underscores` converts spaces in the filenames to underscores
 - `Remove group names (...-name.mp3)` removes `-name` from the filenames
 - `Rename extension...` renames the file extensions to the choosen one
 - `Append extension (.mp -> .mp3)...` appends the entered text to the extension names
@@ -42,9 +43,11 @@ As per windows standards, `...` behind a menu entry indicates that the function 
 ## Build and Installation
 
 The DLL has to be built and installled by the following steps (you probably need administrative access):
-- You don't need to copy the file to `C:\Windows\system32` or a similar system path
-- Register the DLL (open a command prompt, change to the folder where the DLL (preferably `ReleaseUMinDependency`) was built, and type `regsvr32 DFTContextMenuHandler.dll`)
+- You don't need to copy the file to `C:\Windows\System32` or a similar system path.
+- Register the DLL (open a command prompt, change to the folder where the DLL (`x64_Unicode_Release`) was built, and type `regsvr32 DFTContextMenuHandler.dll`)
 If you want to use the four additional options (DeleteEmptyFolders, Flatten, Flatten2 and SlideShow), you have to compile the projects in the respective subfolders.
+
+For convenience, you can download the source code with prebuilt binaries under [Releases](../../releases).
 
 ## Authors
 
