@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general.<br/>
+This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general. Long path names are supported.<br/>
 It should still work on older Windows versions and on 32-bit versions, but as support of these older versions has ended it is no longer tested on these.
 
 ## Screenshot
