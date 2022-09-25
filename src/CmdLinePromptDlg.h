@@ -16,17 +16,18 @@ class CCmdLinePromptDlg :
 public:
 	typedef std::basic_string<_TCHAR>	string;
 
-	CCmdLinePromptDlg(string &strExtension, string &strDialogTitle)
+	CCmdLinePromptDlg(string &strExtension, string &strDialogTitle, bool wideDialog)
 	{
 		m_strExtension.assign(strExtension.data());
 		m_strDialogTitle.assign(strDialogTitle.data());
+		if (wideDialog) IDD = IDD_EDITFILENAME;
 	}
 
 	~CCmdLinePromptDlg()
 	{
 	}
 
-	enum { IDD = IDD_CMDLINEPROMPTDLG };
+	DWORD IDD = IDD_CMDLINEPROMPTDLG;
 
 	string				strExtension;
 

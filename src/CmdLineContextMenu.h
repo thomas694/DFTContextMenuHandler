@@ -13,6 +13,8 @@
 
 #define ID_MENU_ITEM 0
 
+#define MAX_PATH_EX 32767
+
 /////////////////////////////////////////////////////////////////////////////
 // CCmdLineContextMenu
 class ATL_NO_VTABLE CCmdLineContextMenu : 
@@ -70,6 +72,7 @@ private:
 	int DeleteEmptySubfolders();
 	int SlideShow();
 	int EmptyFiles();
+	int EditFilename();
 
 	typedef std::basic_string<_TCHAR>	string;
 	string m_strFileName;

@@ -204,6 +204,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Unicode_Debug|Win32'">
     <ClCompile>
@@ -239,6 +242,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -272,6 +278,9 @@
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Unicode_Debug|x64'">
     <ClCompile>
@@ -306,6 +315,9 @@
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -342,6 +354,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Unicode_Release|Win32'">
     <ClCompile>
@@ -379,6 +394,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <OutputFile>bin\$(Platform)_$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -415,6 +433,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Unicode_Release|x64'">
     <ClCompile>
@@ -452,6 +473,9 @@
       <ProgramDatabaseFile>bin\$(Platform)_$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
       <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(SolutionDir)app.manifest; %(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CmdLineContextMenu.h" />
@@ -542,6 +566,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Bear.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="app.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

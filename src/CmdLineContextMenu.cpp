@@ -19,6 +19,9 @@
 // Version 1.5.0  (c) 2022  thomas694
 //     copied logic code into a VS2019 ATL template,
 //     using CAtlDllModuleT instead of CComModule
+// Version 1.6.0  (c) 2022  thomas694
+//     added long path support
+//     added option for editing filenames (long paths)
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,6 +49,7 @@
 #include <string>
 #include <time.h>
 #include <iostream>
+#include <ShObjIdl_core.h>
 
 #pragma warning(disable : 4996)
 
@@ -130,12 +134,13 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 		InsertMenu ( hPopup,10, MF_BYPOSITION, uID++, _T("Set file date/time...") );
 		InsertMenu ( hPopup,11, MF_BYPOSITION, uID++, _T("Append to filename...") );
 		InsertMenu ( hPopup,12, MF_BYPOSITION, uID++, _T("Insert before filename...") );
-		InsertMenu ( hPopup,13, MF_BYPOSITION, uID++, _T("Empty file(s)...") );
-		InsertMenu ( hPopup,14, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
-		InsertMenu ( hPopup,15, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)...") );
-		InsertMenu ( hPopup,16, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)...") );
-		InsertMenu ( hPopup,17, MF_BYPOSITION, uID++, _T("Delete empty subfolders...") );
-		InsertMenu ( hPopup,18, MF_BYPOSITION, uID++, _T("SlideShow...") );
+		InsertMenu ( hPopup,13, MF_BYPOSITION, uID++, _T("Edit filename..."));
+		InsertMenu ( hPopup,14, MF_BYPOSITION, uID++, _T("Empty file(s)...") );
+		InsertMenu ( hPopup,15, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+		InsertMenu ( hPopup,16, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)...") );
+		InsertMenu ( hPopup,17, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)...") );
+		InsertMenu ( hPopup,18, MF_BYPOSITION, uID++, _T("Delete empty subfolders...") );
+		InsertMenu ( hPopup,19, MF_BYPOSITION, uID++, _T("SlideShow...") );
 
 		m_idCmdLast = uID - 1;
 
@@ -284,18 +289,21 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 		InsertBeforeFilename();
 		break;
 	case 12:
-		EmptyFiles();
+		EditFilename();
 		break;
 	case 13:
-		FlattenTree();
+		EmptyFiles();
 		break;
 	case 14:
-		FlattenTree2();
+		FlattenTree();
 		break;
 	case 15:
-		DeleteEmptySubfolders();
+		FlattenTree2();
 		break;
 	case 16:
+		DeleteEmptySubfolders();
+		break;
+	case 17:
 		SlideShow();
 		break;
 
@@ -404,7 +412,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 12:
-					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders (del empty ones)"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Edit filename"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
@@ -414,21 +422,25 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 14:
-					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders2 (+: folder _ file.ext)"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders (del empty ones)"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
 				case 15:
-					wcsncpy((LPWSTR)pszName, OLESTR("Delete empty subfolders"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Flatten folders2 (+: folder _ file.ext)"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
 				case 16:
+					wcsncpy((LPWSTR)pszName, OLESTR("Delete empty subfolders"), cchMax);
+					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
+					hr = S_OK;
+					break;
+				case 17:
 					wcsncpy((LPWSTR)pszName, OLESTR("SlideShow"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
-
 			}
 			break;
 
@@ -572,43 +584,50 @@ STDMETHODIMP CCmdLineContextMenu::HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARA
     
 //***************************************
 //* Date            : 6.2.99
-//* Last Modified   : 6.2.99
+//* Last Modified   : 20.9.22
 //* Function name	: CCmdLineContextMenu::Initialize
 //* Description	    : 
 //***************************************
 //
 STDMETHODIMP CCmdLineContextMenu::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJECT lpdobj, HKEY hkeyProgID)
 {
-	HRESULT				hres = E_FAIL;
-	FORMATETC			fmte = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
-	STGMEDIUM			medium;
-	_TCHAR				strFilePath[MAX_PATH];
+	HRESULT	hres = E_FAIL;
+	_TCHAR	strFilePath[MAX_PATH_EX];
 
 	// No data object
 	if (lpdobj == NULL)
 		return E_FAIL;
 
-	// Use the given IDataObject to get a list of filenames (CF_HDROP).
-	hres = lpdobj->GetData(&fmte, &medium);
+	IShellItemArray* items;
+	HRESULT hr = SHCreateShellItemArrayFromDataObject(lpdobj, IID_IShellItemArray, (void**)&items);
 
-	if (FAILED(hres))
+	if (FAILED(hr))
 		return E_FAIL;
 
-	size_t lFiles;
-	lFiles = DragQueryFile((HDROP)medium.hGlobal, (UINT)(-1), NULL, 0);
+	DWORD count_sia, n;
+	hr = items->GetCount(&count_sia);
 
-	m_strFilenames.resize(lFiles);
+	if (FAILED(hr))
+		return E_FAIL;
+
+	m_strFilenames.resize(count_sia);
 
 	int i;
-	for (i=0; i<lFiles; i++) {
-		DragQueryFile((HDROP)medium.hGlobal, i, strFilePath, MAX_PATH);
-		m_strFilenames[i] = strFilePath;
+	LPWSTR* filePath = (LPWSTR*)&strFilePath;
+	for (i = 0; i < count_sia; i++) {
+		IShellItem* psi;
+		hr = items->GetItemAt(i, &psi);
+		if (FAILED(hr))
+			return E_FAIL;
+
+		hr = psi->GetDisplayName(SIGDN_FILESYSPATH, filePath);
+		if (FAILED(hr))
+			return E_FAIL;
+
+		m_strFilenames[i] = *filePath;
 	}
 
 	hres = S_OK;
-
-	// Release the data.
-	ReleaseStgMedium (&medium);
 
 	// load a bitmap for our menu item
 	//COleDataObject dataobj;
@@ -634,8 +653,8 @@ int CCmdLineContextMenu::ConvertDots2Spaces() {
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
@@ -667,7 +686,7 @@ int CCmdLineContextMenu::ConvertDots2Spaces() {
 		_tcscpy(sName, sNewName);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -686,8 +705,8 @@ int CCmdLineContextMenu::ConvertSpaces2Dots() {
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
@@ -716,7 +735,7 @@ int CCmdLineContextMenu::ConvertSpaces2Dots() {
 		} while (pDest != NULL);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -735,8 +754,8 @@ int CCmdLineContextMenu::ConvertSpaces2Underscores() {
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
@@ -765,7 +784,7 @@ int CCmdLineContextMenu::ConvertSpaces2Underscores() {
 		} while (pDest != NULL);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -784,8 +803,8 @@ int CCmdLineContextMenu::ConvertUnderscores2Spaces() {
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
@@ -810,7 +829,7 @@ int CCmdLineContextMenu::ConvertUnderscores2Spaces() {
 		_tcscpy(sName, sNewName);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -829,8 +848,8 @@ int CCmdLineContextMenu::RemoveGroupNames()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
@@ -842,7 +861,7 @@ int CCmdLineContextMenu::RemoveGroupNames()
 		}
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -855,7 +874,7 @@ int CCmdLineContextMenu::RemoveGroupNames()
 int CCmdLineContextMenu::RenameExtension()
 {
 	bool bAsked = false;
-	TCHAR sNewExt[_MAX_EXT];
+	TCHAR sNewExt[MAX_PATH];
 	size_t lFiles;
 	lFiles = m_strFilenames.size();
 	int i;
@@ -863,19 +882,19 @@ int CCmdLineContextMenu::RenameExtension()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string abc;
-			abc.assign(sExt);
+			string sText;
+			sText.assign(sExt);
 			string sTitle;
 			sTitle.assign(_T("Enter new extension"));
-			CCmdLinePromptDlg		dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				/*
 				// point is added automatically
@@ -892,12 +911,56 @@ int CCmdLineContextMenu::RenameExtension()
 		_tcscpy(sExt, sNewExt);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
 		if (_trename(m_strFilenames[i].data(), sPath) != 0) {}
 	}
+
+	return 1;
+}
+
+int CCmdLineContextMenu::EditFilename()
+{
+	bool bAsked = false;
+	TCHAR sNewFilename[MAX_PATH_EX];
+	size_t lFiles;
+	lFiles = m_strFilenames.size();
+	int i = 0;
+
+	if (lFiles > 1)	{
+		MessageBox(NULL, _T("More than 1 file selected!"), _T("Edit Filename"), MB_OK);
+		return 0;
+	}
+
+	//split into components
+	TCHAR sDrive[_MAX_DRIVE];
+	TCHAR sDir[MAX_PATH_EX];
+	TCHAR sName[MAX_PATH_EX];
+	TCHAR sExt[_MAX_EXT];
+	_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+
+	//get new filename
+	string sText;
+	sText.assign(sName);
+	string sTitle;
+	sTitle.assign(_T("Enter new filename"));
+	CCmdLinePromptDlg dlg(sText, sTitle, true);
+	if (dlg.DoModal() == IDOK) {
+		_tcscpy(sNewFilename, dlg.strExtension.data());
+	}
+	else {
+		return 0;
+	}
+	_tcscpy(sName, sNewFilename);
+
+	//concat components
+	TCHAR sPath[MAX_PATH_EX];
+	_tmakepath(sPath, sDrive, sDir, sName, sExt);
+
+	//rename file
+	if (_trename(m_strFilenames[i].data(), sPath) != 0) {}
 
 	return 1;
 }
@@ -913,19 +976,19 @@ int CCmdLineContextMenu::AppendExtension()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string abc;
-			abc.assign(sExt);
+			string sText;
+			sText.assign(sExt);
 			string sTitle;
 			sTitle.assign(_T("Enter extension to append"));
-			CCmdLinePromptDlg		dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(sNewExt, dlg.strExtension.data());
 			} else {
@@ -939,7 +1002,7 @@ int CCmdLineContextMenu::AppendExtension()
 		}
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -963,19 +1026,19 @@ int CCmdLineContextMenu::RemoveFromFilename()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string abc;
-			abc.assign(_T("0"));
+			string sText;
+			sText.assign(_T("0"));
 			string sTitle;
 			sTitle.assign(_T("Remove n chars (-n from start)"));
-			CCmdLinePromptDlg		dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				lHowManyCharacters = _ttol(dlg.strExtension.data());
 			} else {
@@ -996,7 +1059,7 @@ int CCmdLineContextMenu::RemoveFromFilename()
 			}
 
 			//concat components
-			TCHAR sPath[_MAX_PATH];
+			TCHAR sPath[MAX_PATH_EX];
 			_tmakepath(sPath, sDrive, sDir, sNewName, sExt);
 
 			//rename file
@@ -1019,12 +1082,12 @@ int CCmdLineContextMenu::SetDateTime() {
 	
 	TCHAR tmpbuf[128];
 	_tcsftime(tmpbuf, 128, _T("%d.%m.%Y %H:%M:%S"), tm);
-	string abc;
-	abc.assign(tmpbuf);
+	string sText;
+	sText.assign(tmpbuf);
 	string sTitle;
 	sTitle.assign(_T("Set date/time"));
 
-	CCmdLinePromptDlg		dlg(abc, sTitle);
+	CCmdLinePromptDlg dlg(sText, sTitle, false);
 	if (dlg.DoModal() == IDOK) {
 		long lRet;
 		lRet = _stscanf(dlg.strExtension.data(), _T("%2u.%2u.%4u %2u:%2u:%2u"), 
@@ -1068,18 +1131,18 @@ int CCmdLineContextMenu::InsertBeforeFilename()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
 		if (!bAsked) {
 			bAsked = true;
-			string abc;
-			abc.assign(_T(""));
+			string sText;
+			sText.assign(_T(""));
 			string sTitle;
 			sTitle.assign(_T("Enter string to insert in front"));
-			CCmdLinePromptDlg		dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(s2Insert, dlg.strExtension.data());
 			} else {
@@ -1091,7 +1154,7 @@ int CCmdLineContextMenu::InsertBeforeFilename()
 		_tcscat(sNewName, sName);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sNewName, sExt);
 
 		//rename file
@@ -1112,18 +1175,18 @@ int CCmdLineContextMenu::AppendToFilename()
 
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
-		TCHAR sDir[_MAX_DIR];
-		TCHAR sName[_MAX_FNAME];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[MAX_PATH_EX];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 		
 		if (!bAsked) {
 			bAsked = true;
-			string abc;
-			abc.assign(_T(" (1)"));
+			string sText;
+			sText.assign(_T(" (1)"));
 			string sTitle;
 			sTitle.assign(_T("Enter string to append"));
-			CCmdLinePromptDlg		dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(s2Append, dlg.strExtension.data());
 			} else {
@@ -1133,7 +1196,7 @@ int CCmdLineContextMenu::AppendToFilename()
 		_tcscat(sName, s2Append);
 
 		//concat components
-		TCHAR sPath[_MAX_PATH];
+		TCHAR sPath[MAX_PATH_EX];
 		_tmakepath(sPath, sDrive, sDir, sName, sExt);
 
 		//rename file
@@ -1174,18 +1237,18 @@ int CCmdLineContextMenu::FlattenTree()
 		
 			//split into components
 			TCHAR sDrive[_MAX_DRIVE];
-			TCHAR sDir[_MAX_DIR];
-			TCHAR sName[_MAX_FNAME];
+			TCHAR sDir[MAX_PATH_EX];
+			TCHAR sName[MAX_PATH_EX];
 			TCHAR sExt[_MAX_EXT];
 			_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 			if (!bAsked) {
 				bAsked = true;
-				string abc;
-				abc.assign(_T("no"));
+				string sText;
+				sText.assign(_T("no"));
 				string sTitle;
 				sTitle.assign(_T("Flatten folders and delete empty ones?"));
-				CCmdLinePromptDlg dlg(abc, sTitle);
+				CCmdLinePromptDlg dlg(sText, sTitle, false);
 				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
 				{
 				} else {
@@ -1202,9 +1265,9 @@ int CCmdLineContextMenu::FlattenTree()
 			}
 			*/
 			
-			TCHAR szAppPath[MAX_PATH] = _T("");
+			TCHAR szAppPath[MAX_PATH_EX] = _T("");
 			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH);
+			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
@@ -1249,19 +1312,19 @@ int CCmdLineContextMenu::FlattenTree2()
 		
 			//split into components
 			TCHAR sDrive[_MAX_DRIVE];
-			TCHAR sDir[_MAX_DIR];
-			TCHAR sName[_MAX_FNAME];
+			TCHAR sDir[MAX_PATH_EX];
+			TCHAR sName[MAX_PATH_EX];
 			TCHAR sExt[_MAX_EXT];
 			_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 			if (!bAsked) {
 				bAsked = true;
 				//get string to append
-				string abc;
-				abc.assign(_T("no"));
+				string sText;
+				sText.assign(_T("no"));
 				string sTitle;
 				sTitle.assign(_T("Flatten folders (Folder _ file.ext) and delete empty ones?"));
-				CCmdLinePromptDlg dlg(abc, sTitle);
+				CCmdLinePromptDlg dlg(sText, sTitle, false);
 				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
 				{
 				} else {
@@ -1278,9 +1341,9 @@ int CCmdLineContextMenu::FlattenTree2()
 			}
 			*/
 			
-			TCHAR szAppPath[MAX_PATH] = _T("");
+			TCHAR szAppPath[MAX_PATH_EX] = _T("");
 			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH);
+			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
@@ -1325,19 +1388,19 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 		
 			//split into components
 			TCHAR sDrive[_MAX_DRIVE];
-			TCHAR sDir[_MAX_DIR];
-			TCHAR sName[_MAX_FNAME];
+			TCHAR sDir[MAX_PATH_EX];
+			TCHAR sName[MAX_PATH_EX];
 			TCHAR sExt[_MAX_EXT];
 			_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 			if (!bAsked) {
 				bAsked = true;
 				//get string to append
-				string abc;
-				abc.assign(_T("no"));
+				string sText;
+				sText.assign(_T("no"));
 				string sTitle;
 				sTitle.assign(_T("Delete empty subfolders?"));
-				CCmdLinePromptDlg dlg(abc, sTitle);
+				CCmdLinePromptDlg dlg(sText, sTitle, false);
 				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
 				{
 				} else {
@@ -1354,9 +1417,9 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 			}
 			*/
 			
-			TCHAR szAppPath[MAX_PATH] = _T("");
+			TCHAR szAppPath[MAX_PATH_EX] = _T("");
 			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH);
+			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
 			// Extract directory
 			strAppDirectory.assign(szAppPath);
 			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
@@ -1371,9 +1434,9 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 
 int CCmdLineContextMenu::SlideShow()
 {
-	TCHAR szAppPath[MAX_PATH] = _T("");
+	TCHAR szAppPath[MAX_PATH_EX] = _T("");
 	string strAppDirectory;
-	GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH);
+	GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
 	// Extract directory
 	strAppDirectory.assign(szAppPath);
 	strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
@@ -1419,11 +1482,11 @@ int CCmdLineContextMenu::EmptyFiles()
 
 		if (!bAsked) {
 			bAsked = true;
-			string abc;
-			abc.assign(_T("no"));
+			string sText;
+			sText.assign(_T("no"));
 			string sTitle;
 			sTitle.assign(_T("Empty file(s)?"));
-			CCmdLinePromptDlg dlg(abc, sTitle);
+			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
 			{
 			} else {

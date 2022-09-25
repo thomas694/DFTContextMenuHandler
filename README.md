@@ -7,7 +7,7 @@ It should still work on older Windows versions and on 32-bit versions, but as su
 
 ## Screenshot
 
-![screenshot of submenu](https://user-images.githubusercontent.com/71355143/174674036-74903a34-dbba-407b-bb8a-fab5d0dc13f8.png)
+![screenshot of submenu](https://user-images.githubusercontent.com/71355143/191361105-dbee1512-c2be-40eb-8790-982b6aa9d164.png)
 
 ## Functions
 
@@ -23,6 +23,7 @@ The `My File Tools` submenu should be located above the `Send to` item and offer
 - `Set file date/time...` sets the modification timestamp to the entered value
 - `Append to filename...` appends the entered text to the filenames
 - `Insert before filename...` prepends the entered text to the filenames
+- `Edit filename...` makes it possible to edit filenames, especially if Windows Explorer blocks it due to long paths
 - `Empty file(s)...` removes the contents from the files (zero-byte files remain)
 
 The following functions are executed on the selected folder:
