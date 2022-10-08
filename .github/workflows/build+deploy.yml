@@ -62,9 +62,6 @@ jobs:
     - name: Build
       run: |
         msbuild ${{ env.SolutionPath }} /p:Configuration="Unicode_Release" /p:Platform="x64"
-        msbuild src/DeleteEmptyFolders/DeleteEmptyFolders.sln /p:Configuration="Release" /p:Platform="Any CPU"
-        msbuild src/flatten/Flatten.sln /p:Configuration="Release" /p:Platform="Any CPU"
-        msbuild src/flatten2/Flatten2.sln /p:Configuration="Release" /p:Platform="Any CPU"
         msbuild src/SlideShow/SlideShow.sln /p:Configuration="Release" /p:Platform="Any CPU"
 
     #- name: list

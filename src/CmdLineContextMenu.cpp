@@ -22,6 +22,8 @@
 // Version 1.6.0  (c) 2022  thomas694
 //     added long path support
 //     added option for editing filenames (long paths)
+// Version 1.7.0  (c) 2022  thomas694
+//     added direct implementations for extra functionality except slideshow
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -890,10 +892,8 @@ int CCmdLineContextMenu::RenameExtension()
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string sText;
-			sText.assign(sExt);
-			string sTitle;
-			sTitle.assign(_T("Enter new extension"));
+			string sText = sExt;
+			string sTitle = _T("Enter new extension");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				/*
@@ -942,10 +942,8 @@ int CCmdLineContextMenu::EditFilename()
 	_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 	//get new filename
-	string sText;
-	sText.assign(sName);
-	string sTitle;
-	sTitle.assign(_T("Enter new filename"));
+	string sText = sName;
+	string sTitle = _T("Enter new filename");
 	CCmdLinePromptDlg dlg(sText, sTitle, true);
 	if (dlg.DoModal() == IDOK) {
 		_tcscpy(sNewFilename, dlg.strExtension.data());
@@ -984,10 +982,8 @@ int CCmdLineContextMenu::AppendExtension()
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string sText;
-			sText.assign(sExt);
-			string sTitle;
-			sTitle.assign(_T("Enter extension to append"));
+			string sText = sExt;
+			string sTitle = _T("Enter extension to append");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(sNewExt, dlg.strExtension.data());
@@ -1034,10 +1030,8 @@ int CCmdLineContextMenu::RemoveFromFilename()
 		if (!bAsked) {
 			bAsked = true;
 			//get new extension
-			string sText;
-			sText.assign(_T("0"));
-			string sTitle;
-			sTitle.assign(_T("Remove n chars (-n from start)"));
+			string sText = _T("0");
+			string sTitle = _T("Remove n chars (-n from start)");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				lHowManyCharacters = _ttol(dlg.strExtension.data());
@@ -1082,10 +1076,8 @@ int CCmdLineContextMenu::SetDateTime() {
 	
 	TCHAR tmpbuf[128];
 	_tcsftime(tmpbuf, 128, _T("%d.%m.%Y %H:%M:%S"), tm);
-	string sText;
-	sText.assign(tmpbuf);
-	string sTitle;
-	sTitle.assign(_T("Set date/time"));
+	string sText = tmpbuf;
+	string sTitle = _T("Set date/time");
 
 	CCmdLinePromptDlg dlg(sText, sTitle, false);
 	if (dlg.DoModal() == IDOK) {
@@ -1138,10 +1130,8 @@ int CCmdLineContextMenu::InsertBeforeFilename()
 		
 		if (!bAsked) {
 			bAsked = true;
-			string sText;
-			sText.assign(_T(""));
-			string sTitle;
-			sTitle.assign(_T("Enter string to insert in front"));
+			string sText = _T("");
+			string sTitle = _T("Enter string to insert in front");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(s2Insert, dlg.strExtension.data());
@@ -1182,10 +1172,8 @@ int CCmdLineContextMenu::AppendToFilename()
 		
 		if (!bAsked) {
 			bAsked = true;
-			string sText;
-			sText.assign(_T(" (1)"));
-			string sTitle;
-			sTitle.assign(_T("Enter string to append"));
+			string sText = _T(" (1)");
+			string sTitle = _T("Enter string to append");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				_tcscpy(s2Append, dlg.strExtension.data());
@@ -1219,8 +1207,7 @@ int CCmdLineContextMenu::FlattenTree()
 
 	} else {
 
-		string param;
-		param.append(m_strFilenames[0].data());
+		string param = m_strFilenames[0].data();
 
 		struct _stat buffer;
 		int nResult;
@@ -1244,36 +1231,16 @@ int CCmdLineContextMenu::FlattenTree()
 
 			if (!bAsked) {
 				bAsked = true;
-				string sText;
-				sText.assign(_T("no"));
-				string sTitle;
-				sTitle.assign(_T("Flatten folders and delete empty ones?"));
+				string sText = _T("no");
+				string sTitle = _T("Flatten folders and delete empty ones?");
 				CCmdLinePromptDlg dlg(sText, sTitle, false);
-				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
+				if (!(dlg.DoModal() == IDOK && _tcscmp(dlg.strExtension.data(), _T("yes")) == 0))
 				{
-				} else {
-					//cancel command
 					return 0;
 				}
 			}
 
-			/*
-			string param;
-			for (i=0; i<lFiles; i++) {
-				param.append(m_strFilenames[i].data());
-				param.append("|");
-			}
-			*/
-			
-			TCHAR szAppPath[MAX_PATH_EX] = _T("");
-			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
-			// Extract directory
-			strAppDirectory.assign(szAppPath);
-			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten\\bin\\flatten.exe"));
-			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-
+			FlattenTree(param.c_str(), false);
 		}
 
 		return 1;
@@ -1294,8 +1261,7 @@ int CCmdLineContextMenu::FlattenTree2()
 
 	} else {
 
-		string param;
-		param.append(m_strFilenames[0].data());
+		string param = m_strFilenames[0].data();
 
 		struct _stat buffer;
 		int nResult;
@@ -1319,37 +1285,16 @@ int CCmdLineContextMenu::FlattenTree2()
 
 			if (!bAsked) {
 				bAsked = true;
-				//get string to append
-				string sText;
-				sText.assign(_T("no"));
-				string sTitle;
-				sTitle.assign(_T("Flatten folders (Folder _ file.ext) and delete empty ones?"));
+				string sText = _T("no");
+				string sTitle = _T("Flatten folders (Folder _ file.ext) and delete empty ones?");
 				CCmdLinePromptDlg dlg(sText, sTitle, false);
-				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
+				if (!(dlg.DoModal() == IDOK && _tcscmp(dlg.strExtension.data(), _T("yes")) == 0))
 				{
-				} else {
-					//cancel command
 					return 0;
 				}
 			}
 
-			/*
-			string param;
-			for (i=0; i<lFiles; i++) {
-				param.append(m_strFilenames[i].data());
-				param.append("|");
-			}
-			*/
-			
-			TCHAR szAppPath[MAX_PATH_EX] = _T("");
-			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
-			// Extract directory
-			strAppDirectory.assign(szAppPath);
-			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\flatten2\\bin\\flatten2.exe"));
-			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-
+			FlattenTree(param.c_str(), true);
 		}
 
 		return 1;
@@ -1370,8 +1315,7 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 
 	} else {
 
-		string param;
-		param.append(m_strFilenames[0].data());
+		string param = m_strFilenames[0].data();
 
 		struct _stat buffer;
 		int nResult;
@@ -1395,41 +1339,227 @@ int CCmdLineContextMenu::DeleteEmptySubfolders()
 
 			if (!bAsked) {
 				bAsked = true;
-				//get string to append
-				string sText;
-				sText.assign(_T("no"));
-				string sTitle;
-				sTitle.assign(_T("Delete empty subfolders?"));
+				string sText = _T("no");
+				string sTitle = _T("Delete empty subfolders?");
 				CCmdLinePromptDlg dlg(sText, sTitle, false);
-				if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
+				if (!(dlg.DoModal() == IDOK && _tcscmp(dlg.strExtension.data(), _T("yes")) == 0))
 				{
-				} else {
-					//cancel command
 					return 0;
 				}
 			}
 
-			/*
-			string param;
-			for (i=0; i<lFiles; i++) {
-				param.append(m_strFilenames[i].data());
-				param.append("|");
-			}
-			*/
-			
-			TCHAR szAppPath[MAX_PATH_EX] = _T("");
-			string strAppDirectory;
-			GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
-			// Extract directory
-			strAppDirectory.assign(szAppPath);
-			strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
-			strAppDirectory = strAppDirectory.append(_T("\\..\\..\\DeleteEmptyFolders\\bin\\DeleteEmptyFolders.exe"));
-			ShellExecute(NULL, NULL, strAppDirectory.c_str(), param.c_str(), NULL, SW_SHOWNORMAL);
-
+			DeleteEmptySubfolders(param.c_str());
 		}
 
 		return 1;
 	}
+}
+
+bool CCmdLineContextMenu::IsEmptyDirectory(string folder) {
+	WIN32_FIND_DATA fd;
+	string searchFolder = folder + _T("\\*");
+	HANDLE hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do
+		{
+			if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+
+			::FindClose(hFind);
+			return false;
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+		return true;
+	}
+	return false;
+}
+
+void CCmdLineContextMenu::FlattenTree(string baseFolder, bool useFolderNames)
+{
+	StringArray lstFolders;
+	lstFolders.push_back(baseFolder);
+
+	bool bBaseDone = false;
+	while (lstFolders.size() > 0) {
+		long lIndex = lstFolders.size() - 1;
+		string folder = lstFolders[lIndex];
+
+		if (!bBaseDone) lstFolders.pop_back();
+
+		StringArray subFolders = GetSubfolders(folder);
+		for (size_t i = 0; i < subFolders.size(); i++)
+		{
+			lstFolders.push_back(subFolders[i]);
+			lIndex = -1;
+		}
+
+		if (bBaseDone) {
+			// get all files
+			WIN32_FIND_DATA fd;
+			string searchFolder = folder + _T("\\*");
+			HANDLE hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+			if (hFind != INVALID_HANDLE_VALUE) {
+				string prepend = _T("");
+				if (useFolderNames) {
+					size_t pos = folder.find_last_of(_T("\\"));
+					prepend = folder.substr(pos + 1) + _T(" _ ");
+				}
+				do
+				{
+					if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0 || fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) { continue; }
+
+					lIndex = -1;
+					int n = 0;
+					string fn = baseFolder + _T("\\") + prepend + fd.cFileName;
+					struct _stat status;
+					if (_tstat(fn.c_str(), &status) == 0) {
+						TCHAR sDrive[_MAX_DRIVE];
+						TCHAR sDir[MAX_PATH_EX];
+						TCHAR sName[MAX_PATH_EX];
+						TCHAR sExt[_MAX_EXT];
+						_tsplitpath(fn.c_str(), sDrive, sDir, sName, sExt);
+						string sBaseName = sName;
+						TCHAR sPath[MAX_PATH_EX];
+						do
+						{
+							n++;
+							string sNewName = sBaseName + _T("_") + std::to_wstring(n);
+							_tmakepath(sPath, sDrive, sDir, sNewName.c_str(), sExt);
+						} while (_tstat(sPath, &status) == 0);
+						fn = sPath;
+					}
+
+					if (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) {
+						DWORD attributes = fd.dwFileAttributes ^ FILE_ATTRIBUTE_READONLY;
+						SetFileAttributes(fn.c_str(), attributes);
+					}
+
+					string oldName = folder + _T("\\") + fd.cFileName;
+					_trename(oldName.c_str(), fn.c_str());
+					
+				} while (::FindNextFile(hFind, &fd));
+				::FindClose(hFind);
+			}
+
+			// delete empty folder
+			if (lIndex > -1) {
+				lstFolders.pop_back();
+				if (IsEmptyDirectory(folder)) {
+					RemoveDirectory(folder.c_str());
+				}
+			}
+		}
+		else {
+			bBaseDone = true;
+		}
+	}
+}
+
+CCmdLineContextMenu::StringArray CCmdLineContextMenu::GetSubfolders(CCmdLineContextMenu::string folder)
+{
+	StringArray lstFolders;
+
+	WIN32_FIND_DATA fd;
+	string searchFolder = folder + _T("\\*");
+	StringArray lstSubfolders;
+	HANDLE hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do
+		{
+			if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				string filename = folder + _T("\\") + fd.cFileName;
+				lstSubfolders.push_back(filename);
+			}
+
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+
+		for (size_t i = 0; i < lstSubfolders.size(); i++)
+		{
+			lstFolders.push_back(lstSubfolders[i].c_str());
+			StringArray folders = GetSubfolders(lstSubfolders[i].c_str());
+			for (size_t i = 0; i < folders.size(); i++)
+			{
+				lstFolders.push_back(folders[i].c_str());
+			}
+		}
+	}
+
+	return lstFolders;
+}
+
+void CCmdLineContextMenu::DeleteEmptySubfolders(string baseFolder)
+{
+	m_strBaseFolder = baseFolder;
+
+	CheckSubfolders(baseFolder);
+
+	for (size_t i = 0; i < m_lstFolders.size(); i++)
+	{
+		RemoveDirectory(m_lstFolders[i].c_str());
+	}
+
+}
+
+bool CCmdLineContextMenu::CheckSubfolders(string folder)
+{
+	bool ret = true;
+
+	StringArray lstSubfolders;
+	string ending = _T("\\thumbs.db");
+
+	long lCount = 0;
+	bool bFound = false;
+	WIN32_FIND_DATA fd;
+	string searchFolder = folder + _T("\\*");
+	HANDLE hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do
+		{
+			if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+
+			lCount++;
+			string filename = folder + _T("\\") + fd.cFileName;
+
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				lstSubfolders.push_back(filename);
+			}
+			else {
+				if (m_strBaseFolder.compare(filename) != 0) {
+					if (filename.compare(filename.length() - ending.length(), ending.length(), ending) == 0) {
+						bFound = true;
+					}
+					else {
+						ret = false;	// something other than folder was found
+					}
+				}
+			}
+		} while (::FindNextFile(hFind, &fd));
+		::FindClose(hFind);
+
+		if (lCount == 1 && bFound) {
+			string fn = folder + _T("\\Thumbs.db");
+			SetFileAttributes(fn.c_str(), FILE_ATTRIBUTE_NORMAL);
+			_tremove(fn.c_str());
+		}
+		long i = 0;
+		for (size_t i = 0; i < lstSubfolders.size(); i++)
+		{
+			bool isEmpty = CheckSubfolders(lstSubfolders[i].c_str());
+			if (isEmpty) {
+				m_lstFolders.push_back(lstSubfolders[i].c_str());
+			}
+			else if (m_strBaseFolder.compare(folder) != 0) {
+				ret = false;
+			}
+		}
+	}
+	else {
+		ret = false;
+	}
+
+	return ret;
 }
 
 int CCmdLineContextMenu::SlideShow()
@@ -1438,7 +1568,7 @@ int CCmdLineContextMenu::SlideShow()
 	string strAppDirectory;
 	GetModuleFileName(_AtlModule.hInstance, szAppPath, MAX_PATH_EX);
 	// Extract directory
-	strAppDirectory.assign(szAppPath);
+	strAppDirectory = szAppPath;
 	strAppDirectory = strAppDirectory.substr(0, strAppDirectory.rfind(_T("\\")));
 	strAppDirectory = strAppDirectory.append(_T("\\..\\..\\SlideShow\\bin\\SlideShow.exe"));
 
@@ -1482,15 +1612,11 @@ int CCmdLineContextMenu::EmptyFiles()
 
 		if (!bAsked) {
 			bAsked = true;
-			string sText;
-			sText.assign(_T("no"));
-			string sTitle;
-			sTitle.assign(_T("Empty file(s)?"));
+			string sText = _T("no");
+			string sTitle = _T("Empty file(s)?");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
-			if (dlg.DoModal() == IDOK &&  _tcscmp(dlg.strExtension.data(), _T("yes")) == 0)
+			if (!(dlg.DoModal() == IDOK && _tcscmp(dlg.strExtension.data(), _T("yes")) == 0))
 			{
-			} else {
-				//cancel command
 				return 0;
 			}
 		}

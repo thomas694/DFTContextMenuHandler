@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general. Long path names are supported.<br/>
-It should still work on older Windows versions and on 32-bit versions, but as support of these older versions has ended it is no longer tested on these.
+As the support of older Windows versions has ended, it is no longer tested on these or on 32-bit versions.
 
 ## Screenshot
 
@@ -46,7 +46,7 @@ As per windows standards, `...` behind a menu entry indicates that the function 
 The DLL has to be built and installled by the following steps (you probably need administrative access):
 - You don't need to copy the file to `C:\Windows\System32` or a similar system path.
 - Register the DLL (open a command prompt, change to the folder where the DLL (`x64_Unicode_Release`) was built, and type `regsvr32 DFTContextMenuHandler.dll`)
-If you want to use the four additional options (DeleteEmptyFolders, Flatten, Flatten2 and SlideShow), you have to compile the projects in the respective subfolders.
+If you want to use the additional option (SlideShow), you have to compile the project in the respective subfolder.
 
 For convenience, you can download the source code with prebuilt binaries under [Releases](../../releases).
 

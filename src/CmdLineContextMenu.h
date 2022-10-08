@@ -74,12 +74,21 @@ private:
 	int EmptyFiles();
 	int EditFilename();
 
-	typedef std::basic_string<_TCHAR>	string;
+	typedef std::basic_string<_TCHAR> string;
 	string m_strFileName;
 	UINT m_idCmdFirst;
 	UINT m_idCmdLast;
 	typedef std::vector<string> StringArray;
 	StringArray m_strFilenames;
+
+	void DeleteEmptySubfolders(string baseFolder);
+	bool CheckSubfolders(string folder);
+	void FlattenTree(string baseFolder, bool useFolderNames);
+	StringArray GetSubfolders(string folder);
+	bool IsEmptyDirectory(string folder);
+
+	string m_strBaseFolder;
+	StringArray m_lstFolders;
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(CmdLineContextMenu), CCmdLineContextMenu)
