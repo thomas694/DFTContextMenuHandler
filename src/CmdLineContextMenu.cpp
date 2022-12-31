@@ -24,6 +24,8 @@
 //     added option for editing filenames (long paths)
 // Version 1.7.0  (c) 2022  thomas694
 //     added direct implementations for extra functionality except slideshow
+// Version 1.7.1  (c) 2022  thomas694
+//     fixed SetDateTime for folders
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1064,6 +1066,14 @@ int CCmdLineContextMenu::RemoveFromFilename()
 	return 1;
 }
 
+void TimetToFileTime(time_t t, LPFILETIME pft)
+{
+	ULARGE_INTEGER time_value;
+	time_value.QuadPart = (t * 10000000LL) + 116444736000000000LL;
+	pft->dwLowDateTime = time_value.LowPart;
+	pft->dwHighDateTime = time_value.HighPart;
+}
+
 int CCmdLineContextMenu::SetDateTime() {
 
 	//get new date/time
@@ -1101,12 +1111,28 @@ int CCmdLineContextMenu::SetDateTime() {
 	times.actime = time;
 	times.modtime = time;
 
+	FILETIME modifiedTime;
+	TimetToFileTime(time, &modifiedTime);
+
 	//set all files to new date/time
 	size_t lFiles;
 	lFiles = m_strFilenames.size();
 	int i;
 	for (i=0; i<lFiles; i++) {
-		_tutime(m_strFilenames[i].data(), &times);
+		if (PathIsDirectory(m_strFilenames[i].data())) {
+			HANDLE hDir = CreateFile(m_strFilenames[i].data(), GENERIC_READ | GENERIC_WRITE,
+				FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+			if (hDir != INVALID_HANDLE_VALUE) {
+				#pragma warning(push)
+				#pragma warning(disable: 6001)
+				SetFileTime(hDir, NULL, NULL, &modifiedTime);
+				#pragma warning(pop)
+				CloseHandle(hDir);
+			}
+		}
+		else {
+			_tutime(m_strFilenames[i].data(), &times);
+		}
 	}
 
 	return 1;
@@ -1434,7 +1460,7 @@ void CCmdLineContextMenu::FlattenTree(string baseFolder, bool useFolderNames)
 					}
 
 					string oldName = folder + _T("\\") + fd.cFileName;
-					_trename(oldName.c_str(), fn.c_str());
+					int ret = _trename(oldName.c_str(), fn.c_str());
 					
 				} while (::FindNextFile(hFind, &fd));
 				::FindClose(hFind);
