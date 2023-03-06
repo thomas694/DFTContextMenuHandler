@@ -26,6 +26,8 @@
 //     added direct implementations for extra functionality except slideshow
 // Version 1.7.1  (c) 2022  thomas694
 //     fixed SetDateTime for folders
+// Version 1.8.0  (c) 2023  thomas694
+//     added drop handler for copy/move items to target folder
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -125,26 +127,35 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 		HMENU hPopup = CreatePopupMenu();
 		UINT uID = idCmdFirst + 1;
 
-		InsertMenu ( hPopup, 0, MF_BYPOSITION, uID++, _T("Convert dots to spaces") );
-		InsertMenu ( hPopup, 1, MF_BYPOSITION, uID++, _T("Convert spaces to dots") );
-		InsertMenu ( hPopup, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
-		InsertMenu ( hPopup, 3, MF_BYPOSITION, uID++, _T("Convert underscores to spaces") );
-		InsertMenu ( hPopup, 4, MF_BYPOSITION, uID++, _T("Convert spaces to underscores") );
-		InsertMenu ( hPopup, 5, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
-		InsertMenu ( hPopup, 6, MF_BYPOSITION, uID++, _T("Remove group names (...-name.mp3)") );
-		InsertMenu ( hPopup, 7, MF_BYPOSITION, uID++, _T("Rename extension...") );
-		InsertMenu ( hPopup, 8, MF_BYPOSITION, uID++, _T("Append extension (.mp -> .mp3)...") );
-		InsertMenu ( hPopup, 9, MF_BYPOSITION, uID++, _T("Remove n chars from filename...") );
-		InsertMenu ( hPopup,10, MF_BYPOSITION, uID++, _T("Set file date/time...") );
-		InsertMenu ( hPopup,11, MF_BYPOSITION, uID++, _T("Append to filename...") );
-		InsertMenu ( hPopup,12, MF_BYPOSITION, uID++, _T("Insert before filename...") );
-		InsertMenu ( hPopup,13, MF_BYPOSITION, uID++, _T("Edit filename..."));
-		InsertMenu ( hPopup,14, MF_BYPOSITION, uID++, _T("Empty file(s)...") );
-		InsertMenu ( hPopup,15, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
-		InsertMenu ( hPopup,16, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)...") );
-		InsertMenu ( hPopup,17, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)...") );
-		InsertMenu ( hPopup,18, MF_BYPOSITION, uID++, _T("Delete empty subfolders...") );
-		InsertMenu ( hPopup,19, MF_BYPOSITION, uID++, _T("SlideShow...") );
+		if (_tcslen(m_szFolderDroppedIn) == 0) {
+
+			InsertMenu(hPopup, 0, MF_BYPOSITION, uID++, _T("Convert dots to spaces"));
+			InsertMenu(hPopup, 1, MF_BYPOSITION, uID++, _T("Convert spaces to dots"));
+			InsertMenu(hPopup, 2, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+			InsertMenu(hPopup, 3, MF_BYPOSITION, uID++, _T("Convert underscores to spaces"));
+			InsertMenu(hPopup, 4, MF_BYPOSITION, uID++, _T("Convert spaces to underscores"));
+			InsertMenu(hPopup, 5, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+			InsertMenu(hPopup, 6, MF_BYPOSITION, uID++, _T("Remove group names (...-name.mp3)"));
+			InsertMenu(hPopup, 7, MF_BYPOSITION, uID++, _T("Rename extension..."));
+			InsertMenu(hPopup, 8, MF_BYPOSITION, uID++, _T("Append extension (.mp -> .mp3)..."));
+			InsertMenu(hPopup, 9, MF_BYPOSITION, uID++, _T("Remove n chars from filename..."));
+			InsertMenu(hPopup, 10, MF_BYPOSITION, uID++, _T("Set file date/time..."));
+			InsertMenu(hPopup, 11, MF_BYPOSITION, uID++, _T("Append to filename..."));
+			InsertMenu(hPopup, 12, MF_BYPOSITION, uID++, _T("Insert before filename..."));
+			InsertMenu(hPopup, 13, MF_BYPOSITION, uID++, _T("Edit filename..."));
+			InsertMenu(hPopup, 14, MF_BYPOSITION, uID++, _T("Empty file(s)..."));
+			InsertMenu(hPopup, 15, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+			InsertMenu(hPopup, 16, MF_BYPOSITION, uID++, _T("Flatten folders (del empty ones)..."));
+			InsertMenu(hPopup, 17, MF_BYPOSITION, uID++, _T("Flatten folders2 (+: folder _ file.ext)..."));
+			InsertMenu(hPopup, 18, MF_BYPOSITION, uID++, _T("Delete empty subfolders..."));
+			InsertMenu(hPopup, 19, MF_BYPOSITION, uID++, _T("SlideShow..."));
+		}
+		else
+		{
+			uID += 30;
+			InsertMenu(hPopup, 0, MF_BYPOSITION, uID++, _T("Copy items here"));
+			InsertMenu(hPopup, 1, MF_BYPOSITION, uID++, _T("Move items here"));
+		}
 
 		m_idCmdLast = uID - 1;
 
@@ -228,7 +239,7 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 		MessageBox(NULL, acMenuText, NULL, MB_OK);
 */
 
-        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, 17);
+        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, m_idCmdLast - m_idCmdFirst + 1);
     }
 
     return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
@@ -255,8 +266,10 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 	if ( 0 != HIWORD(lpici->lpVerb) )
 		return E_INVALIDARG;
 
-	if (LOWORD(lpici->lpVerb) < 1 || LOWORD(lpici->lpVerb) > (m_idCmdLast-m_idCmdFirst))
+	if (LOWORD(lpici->lpVerb) < 1 || LOWORD(lpici->lpVerb) > (m_idCmdLast - m_idCmdFirst))
 		return E_INVALIDARG;
+
+	UINT what = LOWORD(lpici->lpVerb);
 
     switch (LOWORD(lpici->lpVerb)) {
 	case 1:
@@ -311,6 +324,13 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 		SlideShow();
 		break;
 
+	case 31:
+		CopyFilesHere();
+		break;
+	case 32:
+		MoveFilesHere();
+		break;
+
 	/*
 	case ID_MENU_ITEM:
 		CCmdLinePromptDlg		dlg(m_strFileName);
@@ -348,7 +368,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 {
 	HRESULT hr = E_INVALIDARG;
 
-	if (idCmd < 0 || idCmd > m_idCmdLast-m_idCmdFirst)
+	if (idCmd < 0 || idCmd > m_idCmdLast - m_idCmdFirst)
 		return hr;
 
 	switch (uType) {
@@ -640,7 +660,7 @@ STDMETHODIMP CCmdLineContextMenu::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJ
     //dataobj.Attach ( pDataObj, FALSE );
 
 	// get the directory where the items were dropped
-	if (!SHGetPathFromIDList(pidlFolder, m_szFolderDroppedIn))
+	if (!SHGetPathFromIDListEx(pidlFolder, m_szFolderDroppedIn, MAX_PATH_EX, 0))
 	{
 		//return E_FAIL;
 	}
@@ -1654,6 +1674,143 @@ int CCmdLineContextMenu::EmptyFiles()
 		if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
 		#pragma warning(pop)
 	}
+
+	return 1;
+}
+
+int CCmdLineContextMenu::CopyFilesHere()
+{
+	size_t lFiles;
+	lFiles = m_strFilenames.size();
+
+	IProgressDialog* pProgressDlg;
+	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
+	if (FAILED(hr)) pProgressDlg = NULL;
+	if (pProgressDlg != NULL) {
+		pProgressDlg->SetTitle(_T("Copying items..."));
+		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME, NULL);
+		pProgressDlg->SetProgress(0, lFiles);
+	}
+
+	int i;
+	for (i = 0; i < lFiles; i++) {
+		if (pProgressDlg->HasUserCancelled())
+			break;
+		if (pProgressDlg != NULL) pProgressDlg->SetProgress(i + 1, lFiles);
+
+		//split into components
+		TCHAR sDrive[_MAX_DRIVE];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[_MAX_FNAME];
+		TCHAR sExt[_MAX_EXT];
+		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+
+		string sNewFilename = _T("");
+		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
+		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
+			sNewFilename = _T("\\\\?\\") + sNewFilename;
+
+		if (PathIsDirectory(m_strFilenames[i].data())) {
+			CopyDirectory(m_strFilenames[i].data(), sNewFilename);
+
+		} else {
+			bool ret = CopyFile(m_strFilenames[i].data(), sNewFilename.c_str(), true);
+		}
+	}
+
+	if (pProgressDlg != NULL) pProgressDlg->StopProgressDialog();
+
+	return 1;
+}
+
+int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir)
+{
+	string strSource;
+	string strDest;
+	HANDLE hFind;
+	WIN32_FIND_DATA fd;
+
+	// Create destination directory
+	if (::CreateDirectoryW(destDir.c_str(), 0) == FALSE)
+		return ::GetLastError();
+
+	string searchFolder = sourceDir + _T("\\*");
+	hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+
+			strSource.erase();
+			strDest.erase();
+			strSource = sourceDir + _T("\\") + fd.cFileName;
+			if (strSource.rfind(_T("\\\\?\\"), 0) != 0)
+				strSource = _T("\\\\?\\") + strSource;
+			strDest = destDir + _T("\\") + fd.cFileName;
+			if (strDest.rfind(_T("\\\\?\\"), 0) != 0)
+				strDest = _T("\\\\?\\") + strDest;
+
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				// Copy subdirectory
+				if (CopyDirectory(strSource, strDest))
+					return 0;
+			}
+			else
+			{
+				// Copy file
+				if (::CopyFile(strSource.c_str(), strDest.c_str(), TRUE) == FALSE)
+					return ::GetLastError();
+			}
+		} while (::FindNextFile(hFind, &fd) == TRUE);
+
+		::FindClose(hFind);
+
+		DWORD dwError = ::GetLastError();
+		if (dwError != ERROR_NO_MORE_FILES)
+			return dwError;
+	}
+
+	return 0;
+}
+
+int CCmdLineContextMenu::MoveFilesHere()
+{
+	size_t lFiles;
+	lFiles = m_strFilenames.size();
+
+	IProgressDialog* pProgressDlg;
+	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
+	if (FAILED(hr)) pProgressDlg = NULL;
+	if (pProgressDlg != NULL) {
+		pProgressDlg->SetTitle(_T("Moving items..."));
+		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME, NULL);
+		pProgressDlg->SetProgress(0, lFiles);
+	}
+
+	int i;
+	for (i = 0; i < lFiles; i++) {
+		if (pProgressDlg->HasUserCancelled())
+			break;
+		if (pProgressDlg != NULL) pProgressDlg->SetProgress(i + 1, lFiles);
+
+		//split into components
+		TCHAR sDrive[_MAX_DRIVE];
+		TCHAR sDir[MAX_PATH_EX];
+		TCHAR sName[_MAX_FNAME];
+		TCHAR sExt[_MAX_EXT];
+		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+
+		string sNewFilename = _T("");
+		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
+		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
+			sNewFilename = _T("\\\\?\\") + sNewFilename;
+
+		bool ret = MoveFile(m_strFilenames[i].data(), sNewFilename.c_str());
+	}
+
+	if (pProgressDlg != NULL) pProgressDlg->StopProgressDialog();
 
 	return 1;
 }

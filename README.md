@@ -5,9 +5,10 @@
 This is a shell extension for windows 10 (x64) that adds a file tools submenu to the windows explorer context menu for folders and files in general. Long path names are supported.<br/>
 As the support of older Windows versions has ended, it is no longer tested on these or on 32-bit versions.
 
-## Screenshot
+## Screenshots
 
 ![screenshot of submenu](https://user-images.githubusercontent.com/71355143/191361105-dbee1512-c2be-40eb-8790-982b6aa9d164.png)
+![screenshot of drag & drop submenu](https://user-images.githubusercontent.com/71355143/224505007-d7773f53-d62c-4b2a-bc35-49ff0cf2bbca.png)
 
 ## Functions
 
@@ -38,6 +39,10 @@ The following functions are executed on the selected folder:
     - `f` skip the rest of the images inside this folder and continue with the next one
     - `ESC` first time stops the slideshow / second time closes the application
     - `Space` toggles between fullscreen and window mode
+
+The following functions appear in the submenu on drag & drop into a folder:
+- `Copy items here` copies the dragged files and folders to the drop target folder
+- `Move items here` moves the dragged files and folders to the drop target folder
 
 As per windows standards, `...` behind a menu entry indicates that the function isn't executed immediately, but another dialog opens which still allows it to be cancelled.
 

@@ -8,7 +8,7 @@
 #include <WinSDKVer.h>
 
 #undef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WIN2K
+#define _WIN32_WINNT _WIN32_WINNT_LONGHORN
 #define _WIN32_IE      0x0700
 
 #include <SDKDDKVer.h>

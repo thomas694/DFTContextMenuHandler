@@ -52,7 +52,7 @@ BEGIN_COM_MAP(CCmdLineContextMenu)
 END_COM_MAP()
 
 protected:
-	TCHAR m_szFolderDroppedIn[MAX_PATH];
+	TCHAR m_szFolderDroppedIn[MAX_PATH_EX];
 	//CBitmap     m_bitmap;
 
 private:
@@ -73,6 +73,8 @@ private:
 	int SlideShow();
 	int EmptyFiles();
 	int EditFilename();
+	int CopyFilesHere();
+	int MoveFilesHere();
 
 	typedef std::basic_string<_TCHAR> string;
 	string m_strFileName;
@@ -86,6 +88,7 @@ private:
 	void FlattenTree(string baseFolder, bool useFolderNames);
 	StringArray GetSubfolders(string folder);
 	bool IsEmptyDirectory(string folder);
+	int CopyDirectory(string sourceDir, string destDir);
 
 	string m_strBaseFolder;
 	StringArray m_lstFolders;

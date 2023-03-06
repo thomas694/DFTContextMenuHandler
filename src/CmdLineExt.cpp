@@ -72,6 +72,7 @@ STDAPI DllRegisterServer(void)
 			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("*\\shellex\\ContextMenuHandlers\\DFTContextMenuHandler\\"), strCLSID);
 			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\ContextMenuHandlers\\DFTContextMenuHandler\\"), strCLSID);
 			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\DragDropHandlers\\DFTContextMenuHandler\\"), strCLSID);
+			hr = key.SetValue(HKEY_CLASSES_ROOT, _T("Drive\\shellex\\DragDropHandlers\\DFTContextMenuHandler\\"), strCLSID);
 		}
 	}
 
@@ -105,6 +106,14 @@ STDAPI DllUnregisterServer(void)
 				return hr;
 		}
 		if (key.Open(HKEY_CLASSES_ROOT, _T("Directory\\shellex\\DragDropHandlers\\")) == ERROR_SUCCESS) {
+			hr = key.DeleteValue(NULL);
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+			hr = key.DeleteSubKey(_T("DFTContextMenuHandler"));
+			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
+				return hr;
+		}
+		if (key.Open(HKEY_CLASSES_ROOT, _T("Drive\\shellex\\DragDropHandlers\\")) == ERROR_SUCCESS) {
 			hr = key.DeleteValue(NULL);
 			if (hr != ERROR_SUCCESS && hr != ERROR_FILE_NOT_FOUND)
 				return hr;
