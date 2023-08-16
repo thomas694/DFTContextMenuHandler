@@ -28,6 +28,8 @@
 //     fixed SetDateTime for folders
 // Version 1.8.0  (c) 2023  thomas694
 //     added drop handler for copy/move items to target folder
+// Version 1.8.1  (c) 2023  thomas694
+//     fixed deleting empty subfolders
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1540,12 +1542,6 @@ void CCmdLineContextMenu::DeleteEmptySubfolders(string baseFolder)
 	m_strBaseFolder = baseFolder;
 
 	CheckSubfolders(baseFolder);
-
-	for (size_t i = 0; i < m_lstFolders.size(); i++)
-	{
-		RemoveDirectory(m_lstFolders[i].c_str());
-	}
-
 }
 
 bool CCmdLineContextMenu::CheckSubfolders(string folder)
@@ -1594,7 +1590,12 @@ bool CCmdLineContextMenu::CheckSubfolders(string folder)
 		{
 			bool isEmpty = CheckSubfolders(lstSubfolders[i].c_str());
 			if (isEmpty) {
-				m_lstFolders.push_back(lstSubfolders[i].c_str());
+				DWORD attributes = GetFileAttributes(lstSubfolders[i].c_str());
+				if ((attributes & (FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) != 0) {
+					attributes = attributes & ~(FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
+					SetFileAttributes(lstSubfolders[i].c_str(), attributes);
+				}
+				RemoveDirectory(lstSubfolders[i].c_str());
 			}
 			else if (m_strBaseFolder.compare(folder) != 0) {
 				ret = false;
