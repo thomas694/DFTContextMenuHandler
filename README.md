@@ -48,7 +48,7 @@ As per windows standards, `...` behind a menu entry indicates that the function 
 
 ## Build and Installation
 
-The DLL has to be built and installled by the following steps (you probably need administrative access):
+The DLL has to be built and installed by the following steps (you probably need administrative access):
 - You don't need to copy the file to `C:\Windows\System32` or a similar system path.
 - Register the DLL (open a command prompt, change to the folder where the DLL (`x64_Unicode_Release`) was built, and type `regsvr32 DFTContextMenuHandler.dll`)
 If you want to use the additional option (SlideShow), you have to compile the project in the respective subfolder.
