@@ -30,6 +30,8 @@
 //     added drop handler for copy/move items to target folder
 // Version 1.8.1  (c) 2023  thomas694
 //     fixed deleting empty subfolders
+// Version 1.8.2  (c) 2024  thomas694
+//     fixed copy/move files progress dialog
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -140,7 +142,7 @@ STDMETHODIMP CCmdLineContextMenu::QueryContextMenu(HMENU hmenu,
 			InsertMenu(hPopup, 6, MF_BYPOSITION, uID++, _T("Remove group names (...-name.mp3)"));
 			InsertMenu(hPopup, 7, MF_BYPOSITION, uID++, _T("Rename extension..."));
 			InsertMenu(hPopup, 8, MF_BYPOSITION, uID++, _T("Append extension (.mp -> .mp3)..."));
-			InsertMenu(hPopup, 9, MF_BYPOSITION, uID++, _T("Remove n chars from filename..."));
+			InsertMenu(hPopup, 9, MF_BYPOSITION, uID++, _T("Remove n characters from filename..."));
 			InsertMenu(hPopup, 10, MF_BYPOSITION, uID++, _T("Set file date/time..."));
 			InsertMenu(hPopup, 11, MF_BYPOSITION, uID++, _T("Append to filename..."));
 			InsertMenu(hPopup, 12, MF_BYPOSITION, uID++, _T("Insert before filename..."));
@@ -418,7 +420,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 8:
-					wcsncpy((LPWSTR)pszName, OLESTR("Remove n chars from filename"), cchMax);
+					wcsncpy((LPWSTR)pszName, OLESTR("Remove n characters from filename"), cchMax);
 					((LPWSTR)pszName)[cchMax - 1] = OLESTR('\0');
 					hr = S_OK;
 					break;
@@ -513,7 +515,7 @@ STDMETHODIMP CCmdLineContextMenu::GetCommandString(UINT_PTR idCmd,
 					hr = S_OK;
 					break;
 				case 8:
-					strncpy((LPSTR)pszName, "Remove n chars from filename", cchMax);
+					strncpy((LPSTR)pszName, "Remove n characters from filename", cchMax);
 					((LPSTR)pszName)[cchMax - 1] = '\0';
 					hr = S_OK;
 					break;
@@ -1055,7 +1057,7 @@ int CCmdLineContextMenu::RemoveFromFilename()
 			bAsked = true;
 			//get new extension
 			string sText = _T("0");
-			string sTitle = _T("Remove n chars (-n from start)");
+			string sTitle = _T("Remove n characters (-n from start)");
 			CCmdLinePromptDlg dlg(sText, sTitle, false);
 			if (dlg.DoModal() == IDOK) {
 				lHowManyCharacters = _ttol(dlg.strExtension.data());
@@ -1679,26 +1681,33 @@ int CCmdLineContextMenu::EmptyFiles()
 	return 1;
 }
 
+void DoWork()
+{
+	MSG msg;
+	if (PeekMessage(&msg, NULL, 0, 0, 1)) {
+		TranslateMessage(&msg);
+		DispatchMessageW(&msg);
+	}
+}
+
 int CCmdLineContextMenu::CopyFilesHere()
 {
-	size_t lFiles;
-	lFiles = m_strFilenames.size();
+	size_t lTotalItems, lFiles;
+	lTotalItems = lFiles = m_strFilenames.size();
+	size_t lDoneItems = 0;
 
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
 	if (FAILED(hr)) pProgressDlg = NULL;
 	if (pProgressDlg != NULL) {
 		pProgressDlg->SetTitle(_T("Copying items..."));
-		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME, NULL);
-		pProgressDlg->SetProgress(0, lFiles);
+		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME | PROGDLG_NOMINIMIZE, NULL);
+		pProgressDlg->SetProgress(lDoneItems, lTotalItems);
+		DoWork();
 	}
 
 	int i;
 	for (i = 0; i < lFiles; i++) {
-		if (pProgressDlg->HasUserCancelled())
-			break;
-		if (pProgressDlg != NULL) pProgressDlg->SetProgress(i + 1, lFiles);
-
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
 		TCHAR sDir[MAX_PATH_EX];
@@ -1706,25 +1715,39 @@ int CCmdLineContextMenu::CopyFilesHere()
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
+		if (pProgressDlg != NULL) {
+			if (pProgressDlg->HasUserCancelled())
+				break;
+			lDoneItems++;
+			pProgressDlg->SetProgress(lDoneItems, lTotalItems);
+			DoWork();
+			string sItem = _T("");
+			sItem.append(sName).append(sExt);
+			pProgressDlg->SetLine(2, sItem.data(), true, NULL);
+		}
+
 		string sNewFilename = _T("");
 		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
 		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
 			sNewFilename = _T("\\\\?\\") + sNewFilename;
 
 		if (PathIsDirectory(m_strFilenames[i].data())) {
-			CopyDirectory(m_strFilenames[i].data(), sNewFilename);
+			CopyDirectory(m_strFilenames[i].data(), sNewFilename, pProgressDlg, &lDoneItems, &lTotalItems);
 
 		} else {
 			bool ret = CopyFile(m_strFilenames[i].data(), sNewFilename.c_str(), true);
 		}
 	}
 
-	if (pProgressDlg != NULL) pProgressDlg->StopProgressDialog();
-
+	if (pProgressDlg != NULL) {
+		pProgressDlg->StopProgressDialog();
+		pProgressDlg->Release();
+	}
+	
 	return 1;
 }
 
-int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir)
+int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgressDialog* pProgressDlg, size_t* currentItems, size_t* totalItems)
 {
 	string strSource;
 	string strDest;
@@ -1736,6 +1759,23 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir)
 		return ::GetLastError();
 
 	string searchFolder = sourceDir + _T("\\*");
+
+	if (pProgressDlg != NULL) {
+		hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+				(*totalItems)++;
+			} while (!pProgressDlg->HasUserCancelled() && ::FindNextFile(hFind, &fd) == TRUE);
+			::FindClose(hFind);
+			hFind = NULL;
+		}
+		if (pProgressDlg->HasUserCancelled())
+			return -1;
+	}
+
 	hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
@@ -1752,11 +1792,20 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir)
 			if (strDest.rfind(_T("\\\\?\\"), 0) != 0)
 				strDest = _T("\\\\?\\") + strDest;
 
+			(*currentItems)++;
+			if (pProgressDlg != NULL) {
+				if (pProgressDlg->HasUserCancelled())
+					break;
+				pProgressDlg->SetProgress(*currentItems, *totalItems);
+				DoWork();
+			}
+
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
 				// Copy subdirectory
-				if (CopyDirectory(strSource, strDest))
-					return 0;
+				int ret = CopyDirectory(strSource, strDest, pProgressDlg, currentItems, totalItems);
+				if (ret < 0)
+					return ret;
 			}
 			else
 			{
@@ -1767,6 +1816,9 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir)
 		} while (::FindNextFile(hFind, &fd) == TRUE);
 
 		::FindClose(hFind);
+
+		if (pProgressDlg != NULL && pProgressDlg->HasUserCancelled())
+			return -1;
 
 		DWORD dwError = ::GetLastError();
 		if (dwError != ERROR_NO_MORE_FILES)
@@ -1786,22 +1838,29 @@ int CCmdLineContextMenu::MoveFilesHere()
 	if (FAILED(hr)) pProgressDlg = NULL;
 	if (pProgressDlg != NULL) {
 		pProgressDlg->SetTitle(_T("Moving items..."));
-		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME, NULL);
+		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME | PROGDLG_NOMINIMIZE, NULL);
 		pProgressDlg->SetProgress(0, lFiles);
+		DoWork();
 	}
 
 	int i;
 	for (i = 0; i < lFiles; i++) {
-		if (pProgressDlg->HasUserCancelled())
-			break;
-		if (pProgressDlg != NULL) pProgressDlg->SetProgress(i + 1, lFiles);
-
 		//split into components
 		TCHAR sDrive[_MAX_DRIVE];
 		TCHAR sDir[MAX_PATH_EX];
 		TCHAR sName[_MAX_FNAME];
 		TCHAR sExt[_MAX_EXT];
 		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+
+		if (pProgressDlg != NULL) {
+			if (pProgressDlg->HasUserCancelled())
+				break;
+			pProgressDlg->SetProgress(i + 1, lFiles);
+			DoWork();
+			string sItem = _T("");
+			sItem.append(sName).append(sExt);
+			pProgressDlg->SetLine(2, sItem.data(), true, NULL);
+		}
 
 		string sNewFilename = _T("");
 		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
@@ -1811,7 +1870,10 @@ int CCmdLineContextMenu::MoveFilesHere()
 		bool ret = MoveFile(m_strFilenames[i].data(), sNewFilename.c_str());
 	}
 
-	if (pProgressDlg != NULL) pProgressDlg->StopProgressDialog();
+	if (pProgressDlg != NULL) {
+		pProgressDlg->StopProgressDialog();
+		pProgressDlg->Release();
+	}
 
 	return 1;
 }
