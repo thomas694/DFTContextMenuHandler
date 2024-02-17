@@ -41,7 +41,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         #linux: pip3 install gh-md-to-html
-        python3 -m pip install gh-md-to-html
+        python -m pip install gh-md-to-html
       
     - name: Convert md file
       if: github.event.inputs.do-deploy == 'true'
@@ -50,7 +50,7 @@ jobs:
         copy .\README.md temp
         cd temp
         #linux: gh-md-to-html README.md -c "" -w . --math false --box-width 24.25cm
-        python3 -m gh_md_to_html README.md -c `"`" -w . --math false --box-width 24.25cm
+        python -m gh_md_to_html README.md -c . -w . --math false --box-width 24.25cm
         move .\README.html ..
         move .\images\ ..
         cd ..
