@@ -75,6 +75,8 @@ private:
 	int EditFilename();
 	int CopyFilesHere();
 	int MoveFilesHere();
+	int StartCopyFilesHere();
+	int StartMoveFilesHere();
 
 	typedef std::basic_string<_TCHAR> string;
 	string m_strFileName;

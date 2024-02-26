@@ -60,6 +60,7 @@
 #include <time.h>
 #include <iostream>
 #include <ShObjIdl_core.h>
+#include <future>
 
 #pragma warning(disable : 4996)
 
@@ -329,10 +330,10 @@ STDMETHODIMP CCmdLineContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO lpici)
 		break;
 
 	case 31:
-		CopyFilesHere();
+		StartCopyFilesHere();
 		break;
 	case 32:
-		MoveFilesHere();
+		StartMoveFilesHere();
 		break;
 
 	/*
@@ -1681,6 +1682,26 @@ int CCmdLineContextMenu::EmptyFiles()
 	return 1;
 }
 
+int CCmdLineContextMenu::StartCopyFilesHere()
+{
+	std::packaged_task<int()> task([&]() {
+		return CopyFilesHere();
+		});
+	std::future<int> res = task.get_future();
+	std::thread(std::move(task)).detach();
+	res.wait_for(1s);
+}
+
+int CCmdLineContextMenu::StartMoveFilesHere()
+{
+	std::packaged_task<int()> task([&]() {
+		return MoveFilesHere();
+		});
+	std::future<int> res = task.get_future();
+	std::thread(std::move(task)).detach();
+	res.wait_for(1s);
+}
+
 void DoWork()
 {
 	MSG msg;
@@ -1701,7 +1722,7 @@ int CCmdLineContextMenu::CopyFilesHere()
 	if (FAILED(hr)) pProgressDlg = NULL;
 	if (pProgressDlg != NULL) {
 		pProgressDlg->SetTitle(_T("Copying items..."));
-		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME | PROGDLG_NOMINIMIZE, NULL);
+		pProgressDlg->StartProgressDialog(NULL, NULL, PROGDLG_AUTOTIME, NULL);
 		pProgressDlg->SetProgress(lDoneItems, lTotalItems);
 		DoWork();
 	}
@@ -1838,7 +1859,7 @@ int CCmdLineContextMenu::MoveFilesHere()
 	if (FAILED(hr)) pProgressDlg = NULL;
 	if (pProgressDlg != NULL) {
 		pProgressDlg->SetTitle(_T("Moving items..."));
-		pProgressDlg->StartProgressDialog(::GetActiveWindow(), NULL, PROGDLG_AUTOTIME | PROGDLG_NOMINIMIZE, NULL);
+		pProgressDlg->StartProgressDialog(NULL, NULL, PROGDLG_AUTOTIME, NULL);
 		pProgressDlg->SetProgress(0, lFiles);
 		DoWork();
 	}
