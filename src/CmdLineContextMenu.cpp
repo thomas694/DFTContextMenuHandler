@@ -1685,21 +1685,25 @@ int CCmdLineContextMenu::EmptyFiles()
 int CCmdLineContextMenu::StartCopyFilesHere()
 {
 	std::packaged_task<int()> task([&]() {
-		return CopyFilesHere();
+		string szFolderDroppedIn = string(m_szFolderDroppedIn);
+		return CopyFilesHere(m_strFilenames, szFolderDroppedIn);
 		});
 	std::future<int> res = task.get_future();
 	std::thread(std::move(task)).detach();
 	res.wait_for(1s);
+	return 1;
 }
 
 int CCmdLineContextMenu::StartMoveFilesHere()
 {
 	std::packaged_task<int()> task([&]() {
-		return MoveFilesHere();
+		string szFolderDroppedIn = string(m_szFolderDroppedIn);
+		return MoveFilesHere(m_strFilenames, szFolderDroppedIn);
 		});
 	std::future<int> res = task.get_future();
 	std::thread(std::move(task)).detach();
 	res.wait_for(1s);
+	return 1;
 }
 
 void DoWork()
@@ -1711,10 +1715,10 @@ void DoWork()
 	}
 }
 
-int CCmdLineContextMenu::CopyFilesHere()
+int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolderDroppedIn)
 {
 	size_t lTotalItems, lFiles;
-	lTotalItems = lFiles = m_strFilenames.size();
+	lTotalItems = lFiles = strFilenames.size();
 	size_t lDoneItems = 0;
 
 	IProgressDialog* pProgressDlg;
@@ -1734,7 +1738,7 @@ int CCmdLineContextMenu::CopyFilesHere()
 		TCHAR sDir[MAX_PATH_EX];
 		TCHAR sName[_MAX_FNAME];
 		TCHAR sExt[_MAX_EXT];
-		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+		_tsplitpath(strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 		if (pProgressDlg != NULL) {
 			if (pProgressDlg->HasUserCancelled())
@@ -1748,15 +1752,15 @@ int CCmdLineContextMenu::CopyFilesHere()
 		}
 
 		string sNewFilename = _T("");
-		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
+		sNewFilename.append(szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
 		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
 			sNewFilename = _T("\\\\?\\") + sNewFilename;
 
-		if (PathIsDirectory(m_strFilenames[i].data())) {
-			CopyDirectory(m_strFilenames[i].data(), sNewFilename, pProgressDlg, &lDoneItems, &lTotalItems);
+		if (PathIsDirectory(strFilenames[i].data())) {
+			CopyDirectory(strFilenames[i].data(), sNewFilename, pProgressDlg, &lDoneItems, &lTotalItems);
 
 		} else {
-			bool ret = CopyFile(m_strFilenames[i].data(), sNewFilename.c_str(), true);
+			bool ret = CopyFile(strFilenames[i].data(), sNewFilename.c_str(), true);
 		}
 	}
 
@@ -1849,10 +1853,10 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgre
 	return 0;
 }
 
-int CCmdLineContextMenu::MoveFilesHere()
+int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolderDroppedIn)
 {
 	size_t lFiles;
-	lFiles = m_strFilenames.size();
+	lFiles = strFilenames.size();
 
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
@@ -1871,7 +1875,7 @@ int CCmdLineContextMenu::MoveFilesHere()
 		TCHAR sDir[MAX_PATH_EX];
 		TCHAR sName[_MAX_FNAME];
 		TCHAR sExt[_MAX_EXT];
-		_tsplitpath(m_strFilenames[i].data(), sDrive, sDir, sName, sExt);
+		_tsplitpath(strFilenames[i].data(), sDrive, sDir, sName, sExt);
 
 		if (pProgressDlg != NULL) {
 			if (pProgressDlg->HasUserCancelled())
@@ -1884,7 +1888,7 @@ int CCmdLineContextMenu::MoveFilesHere()
 		}
 
 		string sNewFilename = _T("");
-		sNewFilename.append(m_szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
+		sNewFilename.append(szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
 		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
 			sNewFilename = _T("\\\\?\\") + sNewFilename;
 

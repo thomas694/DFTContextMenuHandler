@@ -73,16 +73,16 @@ private:
 	int SlideShow();
 	int EmptyFiles();
 	int EditFilename();
-	int CopyFilesHere();
-	int MoveFilesHere();
+	typedef std::basic_string<_TCHAR> string;
+	typedef std::vector<string> StringArray;
+	int CopyFilesHere(StringArray strFilenames, string szFolderDroppedIn);
+	int MoveFilesHere(StringArray strFilenames, string szFolderDroppedIn);
 	int StartCopyFilesHere();
 	int StartMoveFilesHere();
 
-	typedef std::basic_string<_TCHAR> string;
 	string m_strFileName;
 	UINT m_idCmdFirst;
 	UINT m_idCmdLast;
-	typedef std::vector<string> StringArray;
 	StringArray m_strFilenames;
 
 	void DeleteEmptySubfolders(string baseFolder);
