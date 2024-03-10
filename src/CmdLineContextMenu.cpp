@@ -32,6 +32,8 @@
 //     fixed deleting empty subfolders
 // Version 1.8.2  (c) 2024  thomas694
 //     fixed copy/move files progress dialog
+// Version 1.8.3  (c) 2024  thomas694
+//     fixed problem moving items across volumes
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1853,6 +1855,35 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgre
 	return 0;
 }
 
+BOOL CCmdLineContextMenu::RemoveDirectory(string strDirectory)
+{
+	WIN32_FIND_DATA fdFile = {};
+
+	string strSearchItems = strDirectory + _T("\\*.*");
+	HANDLE hFind = ::FindFirstFile(strSearchItems.c_str(), &fdFile);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		return FALSE;
+	}
+
+	do {
+		string strDelete = strDirectory + _T("\\") + fdFile.cFileName;
+
+		if ((fdFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+			if (_tcscmp(fdFile.cFileName, _T(".")) == 0 || _tcscmp(fdFile.cFileName, _T("..")) == 0)
+				continue;
+			CCmdLineContextMenu::RemoveDirectory(strDelete);
+		}
+		else {
+			::DeleteFile(strDelete.c_str());
+		}
+	} while (::FindNextFile(hFind, &fdFile) == TRUE);
+
+	::FindClose(hFind);
+	::RemoveDirectory(strDirectory.c_str());
+
+	return TRUE;
+}
+
 int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolderDroppedIn)
 {
 	size_t lFiles;
@@ -1866,6 +1897,19 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 		pProgressDlg->StartProgressDialog(NULL, NULL, PROGDLG_AUTOTIME, NULL);
 		pProgressDlg->SetProgress(0, lFiles);
 		DoWork();
+	}
+
+	bool isSameVolume = true;
+	if (lFiles > 0) {
+		HANDLE hFile = CreateFile(strFilenames[0].c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+		BY_HANDLE_FILE_INFORMATION fileInfo = {};
+		BOOL ret = GetFileInformationByHandle(hFile, &fileInfo);
+		HANDLE hFile2 = CreateFile(szFolderDroppedIn.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+		BY_HANDLE_FILE_INFORMATION fileInfo2 = {};
+		ret = GetFileInformationByHandle(hFile2, &fileInfo2);
+		isSameVolume = fileInfo.dwVolumeSerialNumber == fileInfo2.dwVolumeSerialNumber;
+		CloseHandle(hFile);
+		CloseHandle(hFile2);
 	}
 
 	int i;
@@ -1887,12 +1931,36 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 			pProgressDlg->SetLine(2, sItem.data(), true, NULL);
 		}
 
+		string sOldFilename = strFilenames[i].data();
+		if (sOldFilename.rfind(_T("\\\\?\\"), 0) != 0)
+			sOldFilename = _T("\\\\?\\") + sOldFilename;
 		string sNewFilename = _T("");
 		sNewFilename.append(szFolderDroppedIn).append(_T("\\")).append(sName).append(sExt);
 		if (sNewFilename.rfind(_T("\\\\?\\"), 0) != 0)
 			sNewFilename = _T("\\\\?\\") + sNewFilename;
 
-		bool ret = MoveFile(m_strFilenames[i].data(), sNewFilename.c_str());
+		bool ret;
+		if (isSameVolume) {
+			ret = MoveFile(sOldFilename.c_str(), sNewFilename.c_str());
+			if (!ret)
+				break;
+			/*
+			if (ret == false) {
+				DWORD error = ::GetLastError();
+				std::string sMessage = std::system_category().message(error);
+				string message = string(sMessage.begin(), sMessage.end());
+				MessageBox(NULL, message.c_str(), _T("Error"), 0);
+			}
+			*/
+		}
+		else {
+			size_t dummy;
+			int result = CopyDirectory(sOldFilename, sNewFilename, NULL, &dummy, &dummy);
+			if (result == 0)
+				CCmdLineContextMenu::RemoveDirectory(sOldFilename.c_str());
+			else
+				break;
+		}
 	}
 
 	if (pProgressDlg != NULL) {
