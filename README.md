@@ -7,7 +7,7 @@ As the support of older Windows versions has ended, it is no longer tested on th
 
 ## Screenshots
 
-![screenshot of submenu](https://user-images.githubusercontent.com/71355143/191361105-dbee1512-c2be-40eb-8790-982b6aa9d164.png)
+![screenshot of submenu](https://github.com/thomas694/DFTContextMenuHandler/assets/71355143/8b3c726b-37a1-4548-9f76-c5996a7404ee)
 ![screenshot of drag & drop submenu](https://user-images.githubusercontent.com/71355143/224505007-d7773f53-d62c-4b2a-bc35-49ff0cf2bbca.png)
 
 ## Functions
@@ -20,7 +20,7 @@ The `My File Tools` submenu should be located above the `Send to` item and offer
 - `Remove group names (...-name.mp3)` removes `-name` from the filenames
 - `Rename extension...` renames the file extensions to the choosen one
 - `Append extension (.mp -> .mp3)...` appends the entered text to the extension names
-- `Remove n chars from filename...` removes the last N characters from the filenames (use -N to remove the first characters)
+- `Remove n characters from filename...` removes the last N characters from the filenames (use -N to remove the first characters)
 - `Set file date/time...` sets the modification timestamp to the entered value
 - `Append to filename...` appends the entered text to the filenames
 - `Insert before filename...` prepends the entered text to the filenames
