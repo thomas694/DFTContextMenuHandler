@@ -60,8 +60,8 @@ For convenience, you can download the source code with prebuilt binaries under [
 - based on a template by [Nick Carruthers](https://www.codeproject.com/script/Membership/View.aspx?mid=161)
 - this shell extension: [thomas694](https://github.com/thomas694/DFTContextMenuHandler)
 
-## License <a rel="license" href="https://www.gnu.org/licenses/gpl-3.0"><img alt="GNU GPLv3 license" style="border-width:0" src="https://img.shields.io/badge/License-GPLv3-blue.svg" /></a>
+## License <a id="a1" rel="license" href="https://www.gnu.org/licenses/gpl-3.0"><img id="i1" alt="GNU GPLv3 license" style="border-width:0" src="https://img.shields.io/badge/License-GPLv3-blue.svg" /></a>
 
 <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">DFTContextMenuHandler</span> by thomas694 
-is licensed under <a rel="license" href="https://www.gnu.org/licenses/gpl-3.0">GNU GPLv3</a>.<br/>
+is licensed under <a id="a2" rel="license" href="https://www.gnu.org/licenses/gpl-3.0">GNU GPLv3</a>.<br/>
 Based on a template from a disappeared source (should have been on CodeProject).
