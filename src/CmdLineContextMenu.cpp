@@ -30,10 +30,12 @@
 //     added drop handler for copy/move items to target folder
 // Version 1.8.1  (c) 2023  thomas694
 //     fixed deleting empty subfolders
-// Version 1.8.2  (c) 2024  thomas694
+// Version 1.8.2  (c) Feb 2024  thomas694
 //     fixed copy/move files progress dialog
-// Version 1.8.3  (c) 2024  thomas694
+// Version 1.8.3  (c) Mar 2024  thomas694
 //     fixed problem moving items across volumes
+// Version 1.8.4  (c) Nov 2024  thomas694
+//     fixed copy/move files progress dialog, smoother progress bar
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -1708,20 +1710,45 @@ int CCmdLineContextMenu::StartMoveFilesHere()
 	return 1;
 }
 
-void DoWork()
+void CCmdLineContextMenu::DoEvents()
 {
+	if (m_lastExec == -1) {
+		time(&m_lastExec);
+		return;
+	}
+	time_t now;
+	time(&now);
+	double diff = difftime(now, m_lastExec);
+	if (diff < 10) return;
+	m_lastExec = now;
+
 	MSG msg;
-	if (PeekMessage(&msg, NULL, 0, 0, 1)) {
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
+	BOOL result;
+
+	while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+	{
+		result = GetMessage(&msg, NULL, 0, 0);
+		if (result == 0)
+		{
+			PostQuitMessage(msg.wParam);
+			break;
+		}
+		else if (result == -1)
+		{
+		}
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 }
 
 int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolderDroppedIn)
 {
-	size_t lTotalItems, lFiles;
-	lTotalItems = lFiles = strFilenames.size();
-	size_t lDoneItems = 0;
+	size_t lDoneItems, lTotalItems, lFiles;
+	lFiles = strFilenames.size();
+	lDoneItems = lTotalItems = 0;
 
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
@@ -1730,7 +1757,14 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 		pProgressDlg->SetTitle(_T("Copying items..."));
 		pProgressDlg->StartProgressDialog(NULL, NULL, PROGDLG_AUTOTIME, NULL);
 		pProgressDlg->SetProgress(lDoneItems, lTotalItems);
-		DoWork();
+		DoEvents();
+
+		pProgressDlg->SetLine(2, _T("Preparing to copy..."), true, NULL);
+		for (int i = 0; i < lFiles; i++) {
+			lTotalItems += CountFilesInSubfolders(strFilenames[i].data());
+			if (pProgressDlg->HasUserCancelled())
+				lFiles = 0;
+		}
 	}
 
 	int i;
@@ -1747,7 +1781,7 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 				break;
 			lDoneItems++;
 			pProgressDlg->SetProgress(lDoneItems, lTotalItems);
-			DoWork();
+			DoEvents();
 			string sItem = _T("");
 			sItem.append(sName).append(sExt);
 			pProgressDlg->SetLine(2, sItem.data(), true, NULL);
@@ -1759,7 +1793,7 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 			sNewFilename = _T("\\\\?\\") + sNewFilename;
 
 		if (PathIsDirectory(strFilenames[i].data())) {
-			CopyDirectory(strFilenames[i].data(), sNewFilename, pProgressDlg, &lDoneItems, &lTotalItems);
+			CopyDirectory(strFilenames[i].data(), sNewFilename, pProgressDlg, &lDoneItems, lTotalItems);
 
 		} else {
 			bool ret = CopyFile(strFilenames[i].data(), sNewFilename.c_str(), true);
@@ -1774,7 +1808,33 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 	return 1;
 }
 
-int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgressDialog* pProgressDlg, size_t* currentItems, size_t* totalItems)
+size_t CCmdLineContextMenu::CountFilesInSubfolders(string sourceDir)
+{
+	size_t itemsCnt = 0;
+	HANDLE hFind;
+	WIN32_FIND_DATA fd;
+	string searchFolder = sourceDir + _T("\\*");
+
+	hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				itemsCnt += CountFilesInSubfolders(sourceDir + _T("\\") + fd.cFileName);
+			}
+			else {
+				itemsCnt++;
+			}
+		} while (::FindNextFile(hFind, &fd) == TRUE);
+		::FindClose(hFind);
+		hFind = NULL;
+	}
+	return itemsCnt;
+}
+
+int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgressDialog* pProgressDlg, size_t* currentItems, size_t totalItems)
 {
 	string strSource;
 	string strDest;
@@ -1786,23 +1846,6 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgre
 		return ::GetLastError();
 
 	string searchFolder = sourceDir + _T("\\*");
-
-	if (pProgressDlg != NULL) {
-		hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
-		if (hFind != INVALID_HANDLE_VALUE)
-		{
-			do
-			{
-				if (_tcscmp(fd.cFileName, _T(".")) == 0 || _tcscmp(fd.cFileName, _T("..")) == 0) { continue; }
-				(*totalItems)++;
-			} while (!pProgressDlg->HasUserCancelled() && ::FindNextFile(hFind, &fd) == TRUE);
-			::FindClose(hFind);
-			hFind = NULL;
-		}
-		if (pProgressDlg->HasUserCancelled())
-			return -1;
-	}
-
 	hFind = ::FindFirstFile(searchFolder.c_str(), &fd);
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
@@ -1823,8 +1866,8 @@ int CCmdLineContextMenu::CopyDirectory(string sourceDir, string destDir, IProgre
 			if (pProgressDlg != NULL) {
 				if (pProgressDlg->HasUserCancelled())
 					break;
-				pProgressDlg->SetProgress(*currentItems, *totalItems);
-				DoWork();
+				pProgressDlg->SetProgress(*currentItems, totalItems);
+				DoEvents();
 			}
 
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -1886,8 +1929,9 @@ BOOL CCmdLineContextMenu::RemoveDirectory(string strDirectory)
 
 int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolderDroppedIn)
 {
-	size_t lFiles;
+	size_t lDoneItems, lTotalItems, lFiles;
 	lFiles = strFilenames.size();
+	lDoneItems = lTotalItems = 0;
 
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
@@ -1895,8 +1939,15 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 	if (pProgressDlg != NULL) {
 		pProgressDlg->SetTitle(_T("Moving items..."));
 		pProgressDlg->StartProgressDialog(NULL, NULL, PROGDLG_AUTOTIME, NULL);
-		pProgressDlg->SetProgress(0, lFiles);
-		DoWork();
+		pProgressDlg->SetProgress(lDoneItems, lTotalItems);
+		DoEvents();
+
+		pProgressDlg->SetLine(2, _T("Preparing to move..."), true, NULL);
+		for (int i = 0; i < lFiles; i++) {
+			lTotalItems += CountFilesInSubfolders(strFilenames[i].data());
+			if (pProgressDlg->HasUserCancelled())
+				lFiles = 0;
+		}
 	}
 
 	bool isSameVolume = true;
@@ -1924,8 +1975,9 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 		if (pProgressDlg != NULL) {
 			if (pProgressDlg->HasUserCancelled())
 				break;
-			pProgressDlg->SetProgress(i + 1, lFiles);
-			DoWork();
+			lDoneItems++;
+			pProgressDlg->SetProgress(lDoneItems, lTotalItems);
+			DoEvents();
 			string sItem = _T("");
 			sItem.append(sName).append(sExt);
 			pProgressDlg->SetLine(2, sItem.data(), true, NULL);
@@ -1944,18 +1996,9 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 			ret = MoveFile(sOldFilename.c_str(), sNewFilename.c_str());
 			if (!ret)
 				break;
-			/*
-			if (ret == false) {
-				DWORD error = ::GetLastError();
-				std::string sMessage = std::system_category().message(error);
-				string message = string(sMessage.begin(), sMessage.end());
-				MessageBox(NULL, message.c_str(), _T("Error"), 0);
-			}
-			*/
 		}
 		else {
-			size_t dummy;
-			int result = CopyDirectory(sOldFilename, sNewFilename, NULL, &dummy, &dummy);
+			int result = CopyDirectory(sOldFilename, sNewFilename, pProgressDlg, &lDoneItems, lTotalItems);
 			if (result == 0)
 				CCmdLineContextMenu::RemoveDirectory(sOldFilename.c_str());
 			else

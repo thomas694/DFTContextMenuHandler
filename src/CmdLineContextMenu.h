@@ -90,8 +90,11 @@ private:
 	void FlattenTree(string baseFolder, bool useFolderNames);
 	StringArray GetSubfolders(string folder);
 	bool IsEmptyDirectory(string folder);
-	int CopyDirectory(string sourceDir, string destDir, IProgressDialog* pProgressDlg, size_t* currentFiles, size_t* totalFiles);
+	int CopyDirectory(string sourceDir, string destDir, IProgressDialog* pProgressDlg, size_t* currentFiles, size_t totalFiles);
 	BOOL RemoveDirectory(string strDir);
+	void DoEvents();
+	time_t m_lastExec = (time_t)(-1);
+	size_t CountFilesInSubfolders(string sourceDir);
 
 	string m_strBaseFolder;
 	StringArray m_lstFolders;
