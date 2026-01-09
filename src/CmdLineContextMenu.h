@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <shlwapi.h>
+#include <future>
 
 #define ID_MENU_ITEM 0
 
@@ -25,6 +26,7 @@ class ATL_NO_VTABLE CCmdLineContextMenu :
 {
 public:
 	CCmdLineContextMenu();
+	~CCmdLineContextMenu();
 
 	// IContextMenu interface
     STDMETHOD(QueryContextMenu)(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
@@ -79,11 +81,15 @@ private:
 	int MoveFilesHere(StringArray strFilenames, string szFolderDroppedIn);
 	int StartCopyFilesHere();
 	int StartMoveFilesHere();
+	void CancelAndWait();
 
 	string m_strFileName;
 	UINT m_idCmdFirst;
 	UINT m_idCmdLast;
 	StringArray m_strFilenames;
+
+	std::future<int> m_copyFuture;
+	std::future<int> m_moveFuture;
 
 	void DeleteEmptySubfolders(string baseFolder);
 	bool CheckSubfolders(string folder);

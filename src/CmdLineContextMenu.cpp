@@ -36,6 +36,8 @@
 //     fixed problem moving items across volumes
 // Version 1.8.4  (c) Nov 2024  thomas694
 //     fixed copy/move files progress dialog, smoother progress bar
+// Version 1.8.5  (c) Jan 2026  thomas694
+//     fix occasional errors on copy/move files
 //
 // DFTContextMenuHandler is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -78,6 +80,19 @@ CCmdLineContextMenu::CCmdLineContextMenu()
 	_tccpy(m_szFolderDroppedIn, _T(""));
 	m_idCmdFirst = 0;
 	m_idCmdLast = 0;
+}
+
+CCmdLineContextMenu::~CCmdLineContextMenu() {
+	CancelAndWait();
+}
+
+void CCmdLineContextMenu::CancelAndWait() {
+	if (m_moveFuture.valid()) {
+		m_moveFuture.wait(); 
+	} 
+	if (m_copyFuture.valid()) { 
+		m_copyFuture.wait(); 
+	} 
 }
 
 //***************************************
@@ -1688,25 +1703,29 @@ int CCmdLineContextMenu::EmptyFiles()
 
 int CCmdLineContextMenu::StartCopyFilesHere()
 {
-	std::packaged_task<int()> task([&]() {
-		string szFolderDroppedIn = string(m_szFolderDroppedIn);
-		return CopyFilesHere(m_strFilenames, szFolderDroppedIn);
+	auto filenames = m_strFilenames;
+	auto folder = m_szFolderDroppedIn;
+
+	m_copyFuture = std::async(std::launch::async, [this, filenames, folder]() {
+		return CopyFilesHere(filenames, folder);
 		});
-	std::future<int> res = task.get_future();
-	std::thread(std::move(task)).detach();
-	res.wait_for(1s);
+	if (m_copyFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready) {
+		return m_copyFuture.get();
+	}
 	return 1;
 }
 
 int CCmdLineContextMenu::StartMoveFilesHere()
 {
-	std::packaged_task<int()> task([&]() {
-		string szFolderDroppedIn = string(m_szFolderDroppedIn);
-		return MoveFilesHere(m_strFilenames, szFolderDroppedIn);
-		});
-	std::future<int> res = task.get_future();
-	std::thread(std::move(task)).detach();
-	res.wait_for(1s);
+	auto filenames = m_strFilenames;
+	auto folder = m_szFolderDroppedIn;
+
+	m_moveFuture = std::async(std::launch::async, [this, filenames, folder]() {
+		return this->MoveFilesHere(filenames, folder);
+	});
+	if (m_moveFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready) {
+		return m_moveFuture.get();
+	}
 	return 1;
 }
 
@@ -1721,26 +1740,17 @@ void CCmdLineContextMenu::DoEvents()
 	double diff = difftime(now, m_lastExec);
 	if (diff < 10) return;
 	m_lastExec = now;
-
 	MSG msg;
-	BOOL result;
 
-	while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
-		result = GetMessage(&msg, NULL, 0, 0);
-		if (result == 0)
+		if (msg.message == WM_QUIT)
 		{
 			PostQuitMessage(msg.wParam);
 			break;
 		}
-		else if (result == -1)
-		{
-		}
-		else
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 }
 
@@ -1749,6 +1759,8 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 	size_t lDoneItems, lTotalItems, lFiles;
 	lFiles = strFilenames.size();
 	lDoneItems = lTotalItems = 0;
+
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
@@ -1805,6 +1817,7 @@ int CCmdLineContextMenu::CopyFilesHere(StringArray strFilenames, string szFolder
 		pProgressDlg->Release();
 	}
 	
+	CoUninitialize();
 	return 1;
 }
 
@@ -1933,6 +1946,8 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 	lFiles = strFilenames.size();
 	lDoneItems = lTotalItems = 0;
 
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
 	IProgressDialog* pProgressDlg;
 	HRESULT hr = CoCreateInstance(CLSID_ProgressDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pProgressDlg));
 	if (FAILED(hr)) pProgressDlg = NULL;
@@ -1953,6 +1968,11 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 	bool isSameVolume = true;
 	if (lFiles > 0) {
 		HANDLE hFile = CreateFile(strFilenames[0].c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+		if (hFile == INVALID_HANDLE_VALUE) {
+			if (pProgressDlg) { pProgressDlg->Release(); }
+			CoUninitialize();
+			return -1;
+		}
 		BY_HANDLE_FILE_INFORMATION fileInfo = {};
 		BOOL ret = GetFileInformationByHandle(hFile, &fileInfo);
 		HANDLE hFile2 = CreateFile(szFolderDroppedIn.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
@@ -2011,5 +2031,6 @@ int CCmdLineContextMenu::MoveFilesHere(StringArray strFilenames, string szFolder
 		pProgressDlg->Release();
 	}
 
+	CoUninitialize();
 	return 1;
 }
